@@ -6,4 +6,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Seq.Extensions.Logging" Version="6.1.0" />
+  </ItemGroup>
+
 </Project>
