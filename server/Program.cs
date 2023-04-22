@@ -1,10 +1,13 @@
+using Azure.Core.Diagnostics;
 using Elastic.Clients.Elasticsearch;
+using Microsoft.Extensions.Azure;
 using server.Data;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddLogging(logs => logs.AddSeq());
+builder.Services.AddSingleton<AzureEventSourceLogForwarder>();
 
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
@@ -24,6 +27,7 @@ builder.Services.AddSingleton<ResourceIndexer>();
 builder.Services.AddSingleton<WeatherForecastService>();
 
 app = builder.Build();
+app.Services.GetRequiredService<AzureEventSourceLogForwarder>().Start();
 
 app.UseStaticFiles();
 

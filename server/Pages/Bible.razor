@@ -1,0 +1,88 @@
+﻿@page "/bible"
+@using Azure.AI.OpenAI;
+@using Azure;
+
+<PageTitle>Bible</PageTitle>
+
+<h1>Chat-Assisted Bible Search</h1>
+
+<InputText @bind-Value="ApiKey" />
+
+<InputTextArea @bind-Value="Prompt" />
+
+<button class="btn btn-primary" @onclick="SubmitAsync">Submit</button>
+
+<h2>Response:</h2>
+<p>@Response</p>
+
+<h2>Stats</h2>
+<p>Prompt tokens: @PromptTokenUsage; completion tokens: @CompletionTokenUsage; total tokens: @TotalTokenUsage</p>
+<p>Finish reason: @FinishReason</p>
+
+@code {
+	private string _apiKey = "";
+	private string Prompt { get; set; } = "";
+	private string Response { get; set; } = "";
+	private int PromptTokenUsage { get; set; }
+	private int CompletionTokenUsage { get; set; }
+	private int TotalTokenUsage { get; set; }
+	private string FinishReason { get; set; } = "";
+	private OpenAIClient? _client;
+
+	public string ApiKey
+	{
+		get => _apiKey;
+		set
+		{
+			_apiKey = value;
+			_client = string.IsNullOrEmpty(value) ? null : new OpenAIClient(
+				new Uri("https://clearyopenaitest.openai.azure.com/"),
+				new AzureKeyCredential(value),
+				new OpenAIClientOptions()
+				{
+					Diagnostics =
+					{
+						IsLoggingContentEnabled = true,
+						LoggedHeaderNames = { "openai-model", "openai-processing-ms" },
+					},
+				});
+		}
+	}
+
+	private async Task SubmitAsync()
+	{
+		// Just shoot it off to ChatGPT for now.
+
+		if (_client == null)
+		{
+			Response = "{Set the OpenAI API key first.}";
+			return;
+		}
+
+		var chatResponse = await _client.GetChatCompletionsAsync(
+			deploymentOrModelName: "gpt35t",
+			new ChatCompletionsOptions()
+			{
+				Messages =
+				{
+					new ChatMessage(ChatRole.User, Prompt),
+				},
+				Temperature = (float)0.7,
+				MaxTokens = 800,
+				NucleusSamplingFactor = (float)0.95,
+				FrequencyPenalty = 0,
+				PresencePenalty = 0,
+			});
+		var chatCompletions = chatResponse.Value;
+		(PromptTokenUsage, CompletionTokenUsage, TotalTokenUsage) = (chatCompletions.Usage.PromptTokens, chatCompletions.Usage.CompletionTokens, chatCompletions.Usage.TotalTokens);
+		var choice = chatCompletions.Choices.FirstOrDefault();
+		if (choice == null)
+		{
+			Response = "{No choices returned.}";
+			return;
+		}
+
+		FinishReason = choice.FinishReason;
+		Response = $"{choice.Message.Role.Label}: {choice.Message.Content}";
+	}
+}
