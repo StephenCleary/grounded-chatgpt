@@ -1,9 +1,13 @@
 ﻿@page "/"
+@using server.Data;
+@inject ResourceDownloader ResourceDownloader
 
-<PageTitle>Index</PageTitle>
+<h1>Setup</h1>
 
-<h1>Hello, world!</h1>
+<button class="btn btn-primary" @onclick="Download">Download</button>
 
-Welcome to your new app.
-
-<SurveyPrompt Title="How is Blazor working for you?" />
+@code {
+    private void Download()
+    {
+    }
+}
