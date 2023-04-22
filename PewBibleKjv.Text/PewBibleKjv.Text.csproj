@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <RootNamespace>PewBibleKjv.Text</RootNamespace>
+    <AssemblyName>PewBibleKjv.Text</AssemblyName>
+    <Configurations>Debug;Release</Configurations>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="Embedded\verseIndex.dat" />
+    <None Remove="Embedded\verses.dat" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Embedded\verseIndex.dat" />
+    <EmbeddedResource Include="Embedded\verses.dat" />
+  </ItemGroup>
+
+</Project>

@@ -1,13 +1,29 @@
 ﻿@page "/"
 @using server.Data;
 @inject ResourceDownloader ResourceDownloader
+@inject ResourceIndexer ResourceIndexer
 
 <h1>Setup</h1>
 
 <button class="btn btn-primary" @onclick="Download">Download</button>
 
+<button class="btn btn-primary" @onclick="IndexData">Index</button>
+
+<p>Indexer status: @indexerStatus</p>
+
 @code {
+    private string indexerStatus = "";
+
     private void Download()
     {
+    }
+
+    private async Task IndexData()
+    {
+        await ResourceIndexer.IndexBibleAsync(new Progress<string>(report =>
+        {
+            indexerStatus = report;
+            StateHasChanged();
+        }));
     }
 }

@@ -1,18 +1,29 @@
 using Elastic.Clients.Elasticsearch;
 using server.Data;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddLogging(logs => logs.AddSeq("http://seq:5341"));
+builder.Services.AddLogging(logs => logs.AddSeq());
 
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
 
-builder.Services.AddSingleton(new ElasticsearchClient(new Uri("http://elasticsearch:9200")));
+WebApplication app = null!;
+builder.Services.AddSingleton(new ElasticsearchClient(new ElasticsearchClientSettings()
+    .ThrowExceptions()
+    .DisableDirectStreaming()
+    .OnRequestCompleted(details =>
+    {
+        var request = details.RequestBodyInBytes == null ? null : Encoding.UTF8.GetString(details.RequestBodyInBytes);
+        var response = details.ResponseBodyInBytes == null ? null : Encoding.UTF8.GetString(details.ResponseBodyInBytes);
+        app.Services.GetRequiredService<ILogger<ElasticsearchClient>>().LogInformation(details.OriginalException, "ElasticSearch message: {Method} {Uri} {Request} => {StatusCode} {Response}", details.HttpMethod, details.Uri, request, details.HttpStatusCode, response);
+    })));
 builder.Services.AddSingleton<ResourceDownloader>();
+builder.Services.AddSingleton<ResourceIndexer>();
 builder.Services.AddSingleton<WeatherForecastService>();
 
-var app = builder.Build();
+app = builder.Build();
 
 app.UseStaticFiles();
 

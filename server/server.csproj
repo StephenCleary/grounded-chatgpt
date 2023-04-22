@@ -11,4 +11,8 @@
     <PackageReference Include="Seq.Extensions.Logging" Version="6.1.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\PewBibleKjv.Text\PewBibleKjv.Text.csproj" />
+  </ItemGroup>
+
 </Project>

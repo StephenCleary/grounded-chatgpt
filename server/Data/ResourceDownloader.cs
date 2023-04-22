@@ -9,4 +9,8 @@ public sealed class ResourceDownloader
     }
 
     private readonly string _scratchPath;
+
+    private static readonly (string Title, string Uri)[] EtiquetteSources =
+    {
+    };
 }
