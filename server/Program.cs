@@ -24,6 +24,7 @@ builder.Services.AddSingleton(new ElasticsearchClient(new ElasticsearchClientSet
     })));
 builder.Services.AddSingleton<ResourceDownloader>();
 builder.Services.AddSingleton<ResourceIndexer>();
+builder.Services.AddSingleton<OpenAiClientProvider>();
 builder.Services.AddSingleton<WeatherForecastService>();
 
 app = builder.Build();

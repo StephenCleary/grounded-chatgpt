@@ -1,12 +1,11 @@
 ﻿@page "/bible"
 @using Azure.AI.OpenAI;
-@using Azure;
+@using server.Data;
+@inject OpenAiClientProvider OpenAiClientProvider
 
 <PageTitle>Bible</PageTitle>
 
 <h1>Chat-Assisted Bible Search</h1>
-
-<InputText @bind-Value="ApiKey" />
 
 <InputTextArea @bind-Value="Prompt" />
 
@@ -20,46 +19,24 @@
 <p>Finish reason: @FinishReason</p>
 
 @code {
-	private string _apiKey = "";
 	private string Prompt { get; set; } = "";
 	private string Response { get; set; } = "";
 	private int PromptTokenUsage { get; set; }
 	private int CompletionTokenUsage { get; set; }
 	private int TotalTokenUsage { get; set; }
 	private string FinishReason { get; set; } = "";
-	private OpenAIClient? _client;
-
-	public string ApiKey
-	{
-		get => _apiKey;
-		set
-		{
-			_apiKey = value;
-			_client = string.IsNullOrEmpty(value) ? null : new OpenAIClient(
-				new Uri("https://clearyopenaitest.openai.azure.com/"),
-				new AzureKeyCredential(value),
-				new OpenAIClientOptions()
-				{
-					Diagnostics =
-					{
-						IsLoggingContentEnabled = true,
-						LoggedHeaderNames = { "openai-model", "openai-processing-ms" },
-					},
-				});
-		}
-	}
 
 	private async Task SubmitAsync()
 	{
 		// Just shoot it off to ChatGPT for now.
 
-		if (_client == null)
+		if (OpenAiClientProvider.Client == null)
 		{
-			Response = "{Set the OpenAI API key first.}";
+			Response = "{No API key}";
 			return;
 		}
 
-		var chatResponse = await _client.GetChatCompletionsAsync(
+		var chatResponse = await OpenAiClientProvider.Client.GetChatCompletionsAsync(
 			deploymentOrModelName: "gpt35t",
 			new ChatCompletionsOptions()
 			{
