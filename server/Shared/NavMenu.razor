@@ -2,7 +2,7 @@
 
 <div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
-        <a class="navbar-brand" href="">server</a>
+        <a class="navbar-brand" href="">Focused ChatGPT Demo</a>
         <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
             <span class="navbar-toggler-icon"></span>
         </button>
@@ -18,17 +18,31 @@
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="bible">
-                <span class="oi oi-plus" aria-hidden="true"></span> Bible
+                <span class="oi oi-plus" aria-hidden="true"></span> Baseline (Plain Ol Chat)
             </NavLink>
         </div>
         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="fetchdata">
-                <span class="oi oi-list-rich" aria-hidden="true"></span> Fetch data
+            <NavLink class="nav-link" href="bible">
+                <span class="oi oi-plus" aria-hidden="true"></span> Bible Search
             </NavLink>
         </div>
 
-        <div>Total cost: $@CostTracker.GlobalCost</div>
-        <div>My cost: $@CostTracker.Cost</div>
+        <div class="nav-item px-3">
+            <form>
+                <div class="form-group row">
+                    <label class="col col-form-label">Total cost</label>
+                    <div class="col">
+                        <InputText readonly="1" @bind-Value="GlobalCost" style="max-width:120px" />
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <label class="col col-form-label">My cost</label>
+                    <div class="col">
+                        <InputText readonly="1" @bind-Value="Cost" placeholder="Loading..." style="max-width:120px" />
+                    </div>
+                </div>
+            </form>
+        </div>
     </nav>
 </div>
 
@@ -36,6 +50,18 @@
     private bool collapseNavMenu = true;
 
     private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+
+    private string GlobalCost
+    {
+        get => $"${CostTracker.GlobalCost}";
+        set { }
+    }
+
+    private string Cost
+    {
+        get => $"${CostTracker.Cost}";
+        set { }
+    }
 
     private void ToggleNavMenu()
     {
