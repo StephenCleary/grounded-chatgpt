@@ -1,6 +1,7 @@
 ﻿@page "/bible"
 @using Azure.AI.OpenAI;
 @inject OpenAiClientProvider OpenAiClientProvider
+@inject CostTracker CostTracker
 
 <PageTitle>Bible</PageTitle>
 
@@ -14,7 +15,7 @@
 <p>@Response</p>
 
 <h2>Stats</h2>
-<p>Prompt tokens: @PromptTokenUsage; completion tokens: @CompletionTokenUsage; total tokens: @TotalTokenUsage</p>
+<p>Prompt tokens: @PromptTokenUsage; completion tokens: @CompletionTokenUsage; total tokens: @TotalTokenUsage; cost: $@Cost</p>
 <p>Finish reason: @FinishReason</p>
 
 @code {
@@ -23,6 +24,7 @@
 	private int PromptTokenUsage { get; set; }
 	private int CompletionTokenUsage { get; set; }
 	private int TotalTokenUsage { get; set; }
+	private decimal Cost { get; set; }
 	private string FinishReason { get; set; } = "";
 
 	private async Task SubmitAsync()
@@ -51,14 +53,18 @@
 			});
 		var chatCompletions = chatResponse.Value;
 		(PromptTokenUsage, CompletionTokenUsage, TotalTokenUsage) = (chatCompletions.Usage.PromptTokens, chatCompletions.Usage.CompletionTokens, chatCompletions.Usage.TotalTokens);
+		Cost = 0.002M / 1000M * TotalTokenUsage;
 		var choice = chatCompletions.Choices.FirstOrDefault();
 		if (choice == null)
 		{
 			Response = "{No choices returned.}";
+			await CostTracker.AddAsync(Cost);
 			return;
 		}
 
 		FinishReason = choice.FinishReason;
 		Response = $"{choice.Message.Role.Label}: {choice.Message.Content}";
+
+		await CostTracker.AddAsync(Cost);
 	}
 }

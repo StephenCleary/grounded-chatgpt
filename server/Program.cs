@@ -1,4 +1,5 @@
 using Azure.Core.Diagnostics;
+using Blazored.SessionStorage;
 using Elastic.Clients.Elasticsearch;
 using Microsoft.Extensions.Azure;
 using server.Data;
@@ -25,6 +26,9 @@ builder.Services.AddSingleton(new ElasticsearchClient(new ElasticsearchClientSet
 builder.Services.AddSingleton<ResourceDownloader>();
 builder.Services.AddSingleton<ResourceIndexer>();
 builder.Services.AddSingleton<OpenAiClientProvider>();
+builder.Services.AddBlazoredSessionStorage();
+builder.Services.AddSingleton<GlobalCostTracker>();
+builder.Services.AddScoped<CostTracker>();
 
 app = builder.Build();
 app.Services.GetRequiredService<AzureEventSourceLogForwarder>().Start();
