@@ -1,4 +1,3 @@
-using Azure.Core.Diagnostics;
 using Blazored.SessionStorage;
 using Elastic.Clients.Elasticsearch;
 using Microsoft.Extensions.Azure;
@@ -21,7 +20,7 @@ builder.Services.AddSingleton(new ElasticsearchClient(new ElasticsearchClientSet
     {
         var request = details.RequestBodyInBytes == null ? null : Encoding.UTF8.GetString(details.RequestBodyInBytes);
         var response = details.ResponseBodyInBytes == null ? null : Encoding.UTF8.GetString(details.ResponseBodyInBytes);
-        app.Services.GetRequiredService<ILogger<ElasticsearchClient>>().LogInformation(details.OriginalException, "ElasticSearch message: {Method} {Uri} {Request} => {StatusCode} {Response}", details.HttpMethod, details.Uri, request, details.HttpStatusCode, response);
+        app.Services.GetRequiredService<ILogger<ElasticsearchClient>>().LogDebug(details.OriginalException, "ElasticSearch message: {Method} {Uri} {Request} => {StatusCode} {Response}", details.HttpMethod, details.Uri, request, details.HttpStatusCode, response);
     })));
 builder.Services.AddSingleton<ResourceDownloader>();
 builder.Services.AddSingleton<ResourceIndexer>();
