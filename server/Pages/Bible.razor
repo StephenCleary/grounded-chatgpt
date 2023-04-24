@@ -1,11 +1,10 @@
 ﻿@page "/bible"
-@using Azure.AI.OpenAI;
-@inject OpenAiClientProvider OpenAiClientProvider
+@inject RetrieveThenRead RetrieveThenRead
 @inject CostTracker CostTracker
 
 <PageTitle>Bible</PageTitle>
 
-<h1>Chat-Assisted Bible Search</h1>
+<h1>AI-Assisted Bible Search</h1>
 
 <InputTextArea @bind-Value="Prompt" />
 
@@ -14,57 +13,14 @@
 <h2>Response:</h2>
 <p>@Response</p>
 
-<h2>Stats</h2>
-<p>Prompt tokens: @PromptTokenUsage; completion tokens: @CompletionTokenUsage; total tokens: @TotalTokenUsage; cost: $@Cost</p>
-<p>Finish reason: @FinishReason</p>
-
 @code {
 	private string Prompt { get; set; } = "";
 	private string Response { get; set; } = "";
-	private int PromptTokenUsage { get; set; }
-	private int CompletionTokenUsage { get; set; }
-	private int TotalTokenUsage { get; set; }
-	private decimal Cost { get; set; }
-	private string FinishReason { get; set; } = "";
 
 	private async Task SubmitAsync()
 	{
-		// Just shoot it off to ChatGPT for now.
-
-		if (OpenAiClientProvider.Client == null)
-		{
-			Response = "{No API key}";
-			return;
-		}
-
-		var chatResponse = await OpenAiClientProvider.Client.GetChatCompletionsAsync(
-			deploymentOrModelName: "gpt35t",
-			new ChatCompletionsOptions()
-			{
-				Messages =
-				{
-					new ChatMessage(ChatRole.User, Prompt),
-				},
-				Temperature = (float)0.7,
-				MaxTokens = 800,
-				NucleusSamplingFactor = (float)0.95,
-				FrequencyPenalty = 0,
-				PresencePenalty = 0,
-			});
-		var chatCompletions = chatResponse.Value;
-		(PromptTokenUsage, CompletionTokenUsage, TotalTokenUsage) = (chatCompletions.Usage.PromptTokens, chatCompletions.Usage.CompletionTokens, chatCompletions.Usage.TotalTokens);
-		Cost = 0.002M / 1000M * TotalTokenUsage;
-		var choice = chatCompletions.Choices.FirstOrDefault();
-		if (choice == null)
-		{
-			Response = "{No choices returned.}";
-			await CostTracker.AddAsync(Cost);
-			return;
-		}
-
-		FinishReason = choice.FinishReason;
-		Response = $"{choice.Message.Role.Label}: {choice.Message.Content}";
-
-		await CostTracker.AddAsync(Cost);
+		var result = await RetrieveThenRead.RunAsync(Prompt);
+		Response = result.Result;
+		await CostTracker.AddAsync(result.Cost);
 	}
 }

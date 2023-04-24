@@ -28,6 +28,7 @@ builder.Services.AddSingleton<OpenAiClientProvider>();
 builder.Services.AddBlazoredSessionStorage();
 builder.Services.AddSingleton<GlobalCostTracker>();
 builder.Services.AddScoped<CostTracker>();
+builder.Services.AddTransient<RetrieveThenRead>();
 
 app = builder.Build();
 app.Services.GetRequiredService<AzureEventSourceLogForwarder>().Start();
