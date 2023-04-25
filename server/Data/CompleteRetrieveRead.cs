@@ -49,7 +49,7 @@ public sealed class CompleteRetrieveRead
 
 		var searchDocuments = searchResponse.Documents;
 		if (searchDocuments.Count == 0)
-			return ("{No search results}", 0);
+			return ("I don't know.", 0);
 
 		var prompt = _promptTemplate.Template(new { sources = string.Join("\n", searchDocuments.Select(x => $"{x.Id}\t{x.Text}")) });
 
@@ -75,10 +75,6 @@ public sealed class CompleteRetrieveRead
 		if (choice == null)
 			return ("{No choices returned.}", cost);
 
-		var result = choice.Message.Content;
-		if (result.StartsWith("According to the sources provided, "))
-			result = result["According to the sources provided, ".Length..];
-
 		return (choice.Message.Content, cost);
 	}
 
@@ -99,7 +95,7 @@ public sealed class CompleteRetrieveRead
 	You are an intelligent assistant helping people with questions about the Bible.
 	Answer the following question using only the data provided in the sources below.
 	You may include multiple answers, but each answer may only use the data provided in the sources below.
-	Each source has a name followed by tab and the actual information. Always include the source name for each fact you use in the response. Each source has a name followed by colon and the actual information, always include the source name for each fact you use in the response. Use square brakets to reference the source, e.g. [info1.txt]. Don't combine sources; list each source separately, e.g. [info1.txt][info2.pdf].
+	Each source has a name followed by tab and the actual information. Always include the source name for each fact you use in the response. Use square brakets to reference the source, e.g. [John 3:16]. Don't combine sources. List each source separately, e.g. [Genesis 1:1][John 3:16].
 	If you cannot answer using the sources below, say you don't know. Do not generate answers that don't use the sources below. If asking a clarifying question to the user would help, ask the question.
 	Do not comment on unused sources.
 
