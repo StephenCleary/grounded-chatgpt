@@ -1,5 +1,5 @@
 ﻿@page "/bible"
-@inject RetrieveThenRead RetrieveThenRead
+@inject CompleteRetrieveRead Approach
 @inject CostTracker CostTracker
 
 <PageTitle>Bible</PageTitle>
@@ -19,7 +19,7 @@
 
 	private async Task SubmitAsync()
 	{
-		var result = await RetrieveThenRead.RunAsync(Prompt);
+		var result = await Approach.RunAsync(Prompt);
 		Response = result.Result;
 		await CostTracker.AddAsync(result.Cost);
 	}

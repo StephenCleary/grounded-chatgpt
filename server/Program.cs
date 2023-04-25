@@ -29,6 +29,7 @@ builder.Services.AddBlazoredSessionStorage();
 builder.Services.AddSingleton<GlobalCostTracker>();
 builder.Services.AddScoped<CostTracker>();
 builder.Services.AddTransient<RetrieveThenRead>();
+builder.Services.AddTransient<CompleteRetrieveRead>();
 
 app = builder.Build();
 app.Services.GetRequiredService<AzureEventSourceLogForwarder>().Start();
