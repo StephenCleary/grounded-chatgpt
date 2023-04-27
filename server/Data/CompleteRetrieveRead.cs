@@ -1,6 +1,7 @@
 ﻿using Azure.AI.OpenAI;
 using Elastic.Clients.Elasticsearch;
 using server.Data.Elastic;
+using SharpToken;
 
 namespace server.Data;
 
@@ -24,6 +25,9 @@ public sealed class CompleteRetrieveRead
 		if (_openAiClientProvider.Client == null)
 			return ("{No API key}", 0);
 
+		userQuery = userQuery.Replace("\r\n", "\n");
+		var userQueryTokenCount = GptEncoding.GetEncoding("cl100k_base").Encode(userQuery).Count;
+
 		var searchQueryCompletionResponse = await _openAiClientProvider.Client.GetCompletionsAsync(
 			deploymentOrModelName: "gpt35t",
 			new CompletionsOptions()
@@ -34,8 +38,8 @@ public sealed class CompleteRetrieveRead
 				MaxTokens = 32,
 				StopSequences = { "\n" },
 			});
+		var cost = CostTracker.CostOfTokens("gpt-3.5-turbo", searchQueryCompletionResponse.Value.Usage.TotalTokens);
 
-		// TODO: track cost and other details
 		var searchQuery = searchQueryCompletionResponse.Value.Choices.FirstOrDefault()?.Text;
 		if (searchQuery == null)
 		{
@@ -70,10 +74,10 @@ public sealed class CompleteRetrieveRead
 				PresencePenalty = 0,
 			});
 		var chatCompletions = chatResponse.Value;
-		var cost = 0.002M / 1000M * chatCompletions.Usage.TotalTokens;
+		cost += CostTracker.CostOfTokens("gpt-3.5-turbo", chatCompletions.Usage.TotalTokens);
 		var choice = chatCompletions.Choices.FirstOrDefault();
 		if (choice == null)
-			return ("{No choices returned.}", cost);
+			return ("I don't know.", cost);
 
 		return (choice.Message.Content, cost);
 	}
@@ -83,23 +87,25 @@ public sealed class CompleteRetrieveRead
 	Below is a question asked by the user that needs to be answered by searching.
 	Generate a search query based on names and concepts extracted from the question.
 
-	Question:
+	### Question:
 	{question}
 
-	Search query:
+	### Search query:
 	
 	""";
 
 	private const string _promptTemplate =
 	"""
 	You are an intelligent assistant helping people with questions about the Bible.
-	Answer the following question using only the data provided in the sources below.
-	You may include multiple answers, but each answer may only use the data provided in the sources below.
-	Each source has a name followed by tab and the actual information. Always include the source name for each fact you use in the response. Use square brakets to reference the source, e.g. [John 3:16]. Don't combine sources. List each source separately, e.g. [Genesis 1:1][John 3:16].
-	If you cannot answer using the sources below, say you don't know. Do not generate answers that don't use the sources below. If asking a clarifying question to the user would help, ask the question.
-	Do not comment on unused sources.
+	Answer the following question. You may include multiple answers, but each answer may only use the data provided in the References below.
+	Each Reference has a name followed by tab and then its data.
+	Use square brakets to indicate which Reference was used, e.g. [John 3:16]
+	Don't combine References; list each Reference separately, e.g. [Genesis 1:1][John 3:16]
+	If you cannot answer using the References below, say you don't know. Only provide answers that include at least one Reference name.
+	If asking a clarifying question to the user would help, ask the question.
+	Do not comment on unused References.
 
-	Sources:
+	###	References:
 	{sources}
 
 	""";
