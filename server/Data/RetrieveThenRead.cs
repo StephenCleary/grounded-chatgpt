@@ -6,17 +6,14 @@ namespace server.Data;
 
 public sealed class RetrieveThenRead
 {
-	public RetrieveThenRead(ElasticsearchClient elasticsearchClient, OpenAiClientProvider openAiClientProvider)
+	public RetrieveThenRead(ElasticsearchClient elasticsearchClient, OpenAIClient openAIClient)
 	{
 		_elasticsearchClient = elasticsearchClient;
-		_openAiClientProvider = openAiClientProvider;
+		_openAIClient = openAIClient;
 	}
 
 	public async Task<(string Result, decimal Cost)> RunAsync(string userQuery)
 	{
-		if (_openAiClientProvider.Client == null)
-			return ("{No API key}", 0);
-
 		var searchResponse = await _elasticsearchClient.SearchAsync<BibleDocument>(s => s
 			.Index("bible")
 			.Query(q => q.SimpleQueryString(q => q.Query(userQuery))));
@@ -27,7 +24,7 @@ public sealed class RetrieveThenRead
 
 		var prompt = string.Format(_template, userQuery, string.Join("\n", searchDocuments.Select(x => $"{x.Id}\t{x.Text}"))).Replace("\r\n", "\n");
 
-		var chatResponse = await _openAiClientProvider.Client.GetCompletionsAsync(
+		var chatResponse = await _openAIClient.GetCompletionsAsync(
 			deploymentOrModelName: "gpt35t",
 			new CompletionsOptions()
 			{
@@ -80,5 +77,5 @@ public sealed class RetrieveThenRead
 
 	""";
 	private readonly ElasticsearchClient _elasticsearchClient;
-	private readonly OpenAiClientProvider _openAiClientProvider;
+	private readonly OpenAIClient _openAIClient;
 }

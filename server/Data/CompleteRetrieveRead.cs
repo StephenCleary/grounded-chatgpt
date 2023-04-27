@@ -13,22 +13,19 @@ namespace server.Data;
 /// </summary>
 public sealed class CompleteRetrieveRead
 {
-	public CompleteRetrieveRead(ElasticsearchClient elasticsearchClient, OpenAiClientProvider openAiClientProvider, ILogger<CompleteRetrieveRead> logger)
+	public CompleteRetrieveRead(ElasticsearchClient elasticsearchClient, OpenAIClient openAIClient, ILogger<CompleteRetrieveRead> logger)
 	{
 		_elasticsearchClient = elasticsearchClient;
-		_openAiClientProvider = openAiClientProvider;
+		_openAIClient = openAIClient;
 		_logger = logger;
 	}
 
 	public async Task<(string Result, decimal Cost)> RunAsync(string userQuery)
 	{
-		if (_openAiClientProvider.Client == null)
-			return ("{No API key}", 0);
-
 		userQuery = userQuery.Replace("\r\n", "\n");
 		var userQueryTokenCount = GptEncoding.GetEncoding("cl100k_base").Encode(userQuery).Count;
 
-		var searchQueryCompletionResponse = await _openAiClientProvider.Client.GetCompletionsAsync(
+		var searchQueryCompletionResponse = await _openAIClient.GetCompletionsAsync(
 			deploymentOrModelName: "gpt35t",
 			new CompletionsOptions()
 			{
@@ -57,7 +54,7 @@ public sealed class CompleteRetrieveRead
 
 		var prompt = _promptTemplate.Template(new { sources = string.Join("\n", searchDocuments.Select(x => $"{x.Id}\t{x.Text}")) });
 
-		var chatResponse = await _openAiClientProvider.Client.GetChatCompletionsAsync(
+		var chatResponse = await _openAIClient.GetChatCompletionsAsync(
 			deploymentOrModelName: "gpt35t",
 			new ChatCompletionsOptions()
 			{
@@ -111,6 +108,6 @@ public sealed class CompleteRetrieveRead
 	""";
 
 	private readonly ElasticsearchClient _elasticsearchClient;
-	private readonly OpenAiClientProvider _openAiClientProvider;
+	private readonly OpenAIClient _openAIClient;
 	private readonly ILogger<CompleteRetrieveRead> _logger;
 }

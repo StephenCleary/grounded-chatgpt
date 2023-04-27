@@ -1,6 +1,6 @@
 ﻿@page "/baseline"
 @using Azure.AI.OpenAI;
-@inject OpenAiClientProvider OpenAiClientProvider
+@inject OpenAIClient OpenAIClient
 @inject CostTracker CostTracker
 
 <PageTitle>Baseline</PageTitle>
@@ -31,13 +31,7 @@
 	{
 		// Just shoot it off to ChatGPT.
 
-		if (OpenAiClientProvider.Client == null)
-		{
-			Response = "{No API key}";
-			return;
-		}
-
-		var chatResponse = await OpenAiClientProvider.Client.GetChatCompletionsAsync(
+		var chatResponse = await OpenAIClient.GetChatCompletionsAsync(
 			deploymentOrModelName: "gpt35t",
 			new ChatCompletionsOptions()
 			{

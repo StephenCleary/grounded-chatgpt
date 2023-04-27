@@ -1,8 +1,13 @@
+using Azure;
+using Azure.AI.OpenAI;
 using Blazored.SessionStorage;
 using Elastic.Clients.Elasticsearch;
+using Elastic.Transport;
 using Microsoft.Extensions.Azure;
+using Microsoft.Extensions.Options;
 using server.Data;
 using System.Text;
+using OpenAIClientOptions = server.Data.OpenAIClientOptions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,7 +29,22 @@ builder.Services.AddSingleton(new ElasticsearchClient(new ElasticsearchClientSet
     })));
 builder.Services.AddSingleton<ResourceDownloader>();
 builder.Services.AddSingleton<ResourceIndexer>();
-builder.Services.AddSingleton<OpenAiClientProvider>();
+builder.Services.Configure<OpenAIClientOptions>(builder.Configuration.GetRequiredSection("OpenAI"));
+builder.Services.AddSingleton(p =>
+{
+	var options = p.GetRequiredService<IOptions<OpenAIClientOptions>>().Value;
+	return new OpenAIClient(
+		new Uri(options.Uri),
+		new AzureKeyCredential(options.Apikey),
+		new Azure.AI.OpenAI.OpenAIClientOptions()
+		{
+			Diagnostics =
+			{
+				IsLoggingContentEnabled = true,
+				LoggedHeaderNames = { "openai-model", "openai-processing-ms" },
+			},
+		});
+});
 builder.Services.AddBlazoredSessionStorage();
 builder.Services.AddSingleton<GlobalCostTracker>();
 builder.Services.AddScoped<CostTracker>();
