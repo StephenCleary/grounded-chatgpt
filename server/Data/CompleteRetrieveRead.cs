@@ -1,5 +1,6 @@
 ﻿using Azure.AI.OpenAI;
 using Elastic.Clients.Elasticsearch;
+using Microsoft.Extensions.Options;
 using server.Data.Elastic;
 using SharpToken;
 
@@ -13,11 +14,12 @@ namespace server.Data;
 /// </summary>
 public sealed class CompleteRetrieveRead
 {
-	public CompleteRetrieveRead(ElasticsearchClient elasticsearchClient, OpenAIClient openAIClient, ILogger<CompleteRetrieveRead> logger)
+	public CompleteRetrieveRead(ElasticsearchClient elasticsearchClient, OpenAIClient openAIClient, IOptions<OpenAIClientOptions> aiOptions, ILogger<CompleteRetrieveRead> logger)
 	{
 		_elasticsearchClient = elasticsearchClient;
 		_openAIClient = openAIClient;
 		_logger = logger;
+		_aiOptions = aiOptions.Value;
 	}
 
 	public async Task<(string Result, decimal Cost)> RunAsync(string userQuery)
@@ -26,7 +28,7 @@ public sealed class CompleteRetrieveRead
 		var userQueryTokenCount = GptEncoding.GetEncoding("cl100k_base").Encode(userQuery).Count;
 
 		var searchQueryCompletionResponse = await _openAIClient.GetCompletionsAsync(
-			deploymentOrModelName: "gpt35t",
+			deploymentOrModelName: _aiOptions.ExtractDeployment,
 			new CompletionsOptions()
 			{
 				Prompts = { _queryTemplate.Template(new { question = userQuery }) },
@@ -35,7 +37,7 @@ public sealed class CompleteRetrieveRead
 				MaxTokens = 32,
 				StopSequences = { "\n" },
 			});
-		var cost = CostTracker.CostOfTokens("gpt-3.5-turbo", searchQueryCompletionResponse.Value.Usage.TotalTokens);
+		var cost = CostTracker.CostOfTokens(_aiOptions.ExtractDeployment, searchQueryCompletionResponse.Value.Usage.TotalTokens);
 
 		var searchQuery = searchQueryCompletionResponse.Value.Choices.FirstOrDefault()?.Text;
 		if (searchQuery == null)
@@ -55,7 +57,7 @@ public sealed class CompleteRetrieveRead
 		var prompt = _promptTemplate.Template(new { sources = string.Join("\n", searchDocuments.Select(x => $"{x.Id}\t{x.Text}")) });
 
 		var chatResponse = await _openAIClient.GetChatCompletionsAsync(
-			deploymentOrModelName: "gpt35t",
+			deploymentOrModelName: _aiOptions.ChatDeployment,
 			new ChatCompletionsOptions()
 			{
 				Messages =
@@ -71,7 +73,7 @@ public sealed class CompleteRetrieveRead
 				PresencePenalty = 0,
 			});
 		var chatCompletions = chatResponse.Value;
-		cost += CostTracker.CostOfTokens("gpt-3.5-turbo", chatCompletions.Usage.TotalTokens);
+		cost += CostTracker.CostOfTokens(_aiOptions.ChatDeployment, chatCompletions.Usage.TotalTokens);
 		var choice = chatCompletions.Choices.FirstOrDefault();
 		if (choice == null)
 			return ("I don't know.", cost);
@@ -110,4 +112,5 @@ public sealed class CompleteRetrieveRead
 	private readonly ElasticsearchClient _elasticsearchClient;
 	private readonly OpenAIClient _openAIClient;
 	private readonly ILogger<CompleteRetrieveRead> _logger;
+	private readonly OpenAIClientOptions _aiOptions;
 }

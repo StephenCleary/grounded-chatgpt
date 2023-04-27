@@ -1,15 +1,17 @@
 ﻿using Azure.AI.OpenAI;
 using Elastic.Clients.Elasticsearch;
+using Microsoft.Extensions.Options;
 using server.Data.Elastic;
 
 namespace server.Data;
 
 public sealed class RetrieveThenRead
 {
-	public RetrieveThenRead(ElasticsearchClient elasticsearchClient, OpenAIClient openAIClient)
+	public RetrieveThenRead(ElasticsearchClient elasticsearchClient, OpenAIClient openAIClient, IOptions<OpenAIClientOptions> aiOptions)
 	{
 		_elasticsearchClient = elasticsearchClient;
 		_openAIClient = openAIClient;
+		_aiOptions = aiOptions.Value;
 	}
 
 	public async Task<(string Result, decimal Cost)> RunAsync(string userQuery)
@@ -25,7 +27,7 @@ public sealed class RetrieveThenRead
 		var prompt = string.Format(_template, userQuery, string.Join("\n", searchDocuments.Select(x => $"{x.Id}\t{x.Text}"))).Replace("\r\n", "\n");
 
 		var chatResponse = await _openAIClient.GetCompletionsAsync(
-			deploymentOrModelName: "gpt35t",
+			deploymentOrModelName: _aiOptions.ChatDeployment,
 			new CompletionsOptions()
 			{
 				Prompts = { prompt },
@@ -78,4 +80,5 @@ public sealed class RetrieveThenRead
 	""";
 	private readonly ElasticsearchClient _elasticsearchClient;
 	private readonly OpenAIClient _openAIClient;
+	private readonly OpenAIClientOptions _aiOptions;
 }

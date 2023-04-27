@@ -1,7 +1,9 @@
 ﻿@page "/baseline"
 @using Azure.AI.OpenAI;
+@using Microsoft.Extensions.Options;
 @inject OpenAIClient OpenAIClient
 @inject CostTracker CostTracker
+@inject IOptions<server.Data.OpenAIClientOptions> AIOptions
 
 <PageTitle>Baseline</PageTitle>
 
@@ -32,7 +34,7 @@
 		// Just shoot it off to ChatGPT.
 
 		var chatResponse = await OpenAIClient.GetChatCompletionsAsync(
-			deploymentOrModelName: "gpt35t",
+			deploymentOrModelName: AIOptions.Value.ChatDeployment,
 			new ChatCompletionsOptions()
 			{
 				Messages =
