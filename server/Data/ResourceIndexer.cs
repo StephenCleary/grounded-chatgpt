@@ -37,7 +37,6 @@ public sealed class ResourceIndexer
                             Id = documentId,
                             Text = text,
                             Url = "https://TODO",
-                            TokenCount = Globals.Gpt35TurboEncoding.Encode(text).Count,
                         });
                     }
 
