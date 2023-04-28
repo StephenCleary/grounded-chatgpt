@@ -16,7 +16,7 @@ public sealed class RetrieveThenRead
 
 	public async Task<(string Result, decimal Cost)> RunAsync(string userQuery)
 	{
-		var searchResponse = await _elasticsearchClient.SearchAsync<BibleDocument>(s => s
+		var searchResponse = await _elasticsearchClient.SearchAsync<SourceDocument>(s => s
 			.Index("bible")
 			.Query(q => q.SimpleQueryString(q => q.Query(userQuery))));
 

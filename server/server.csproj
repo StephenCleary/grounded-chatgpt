@@ -11,6 +11,7 @@
     <PackageReference Include="Blazored.SessionStorage" Version="2.3.0" />
     <PackageReference Include="Elastic.Clients.Elasticsearch" Version="8.1.0" />
     <PackageReference Include="Microsoft.Extensions.Azure" Version="1.6.3" />
+    <PackageReference Include="Nito.Logging" Version="1.0.1" />
     <PackageReference Include="Seq.Extensions.Logging" Version="6.1.0" />
     <PackageReference Include="SharpToken" Version="1.0.27" />
   </ItemGroup>

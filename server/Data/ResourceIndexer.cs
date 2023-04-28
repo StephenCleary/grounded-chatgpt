@@ -1,6 +1,7 @@
 ﻿using Elastic.Clients.Elasticsearch;
 using Elastic.Transport;
 using PewBibleKjv.Text;
+using server.Data.Elastic;
 
 namespace server.Data;
 
@@ -16,6 +17,9 @@ public sealed class ResourceIndexer
     {
         try
         {
+            if ((await _client.Indices.ExistsAsync("bible")).Exists)
+                await _client.Indices.DeleteAsync("bible");
+
             await _client.Indices.CreateAsync("bible");
 
             foreach (var book in Structure.Books)
@@ -27,7 +31,14 @@ public sealed class ResourceIndexer
                     for (int verse = chapter.BeginVerse; verse != chapter.EndVerse; ++verse)
                     {
                         var documentId = $"{book.Name} {chapter.Index + 1}:{verse - chapter.BeginVerse + 1}";
-                        documents.Add(new { id = documentId, text = Bible.FormattedVerse(verse).Text.Trim() });
+                        var text = Bible.FormattedVerse(verse).Text.Trim();
+                        documents.Add(new SourceDocument
+                        {
+                            Id = documentId,
+                            Text = text,
+                            Url = "https://TODO",
+                            TokenCount = Globals.Gpt35TurboEncoding.Encode(text).Count,
+                        });
                     }
 
                     await _client.IndexManyAsync(documents, "bible");

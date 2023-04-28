@@ -5,6 +5,7 @@ using Elastic.Clients.Elasticsearch;
 using Elastic.Transport;
 using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.Options;
+using Nito.Logging;
 using server.Data;
 using System.Text;
 using OpenAIClientOptions = server.Data.OpenAIClientOptions;
@@ -27,7 +28,6 @@ builder.Services.AddSingleton(new ElasticsearchClient(new ElasticsearchClientSet
         var response = details.ResponseBodyInBytes == null ? null : Encoding.UTF8.GetString(details.ResponseBodyInBytes);
         app.Services.GetRequiredService<ILogger<ElasticsearchClient>>().LogDebug(details.OriginalException, "ElasticSearch message: {Method} {Uri} {Request} => {StatusCode} {Response}", details.HttpMethod, details.Uri, request, details.HttpStatusCode, response);
     })));
-builder.Services.AddSingleton<ResourceDownloader>();
 builder.Services.AddSingleton<ResourceIndexer>();
 builder.Services.Configure<OpenAIClientOptions>(builder.Configuration.GetRequiredSection("OpenAI"));
 builder.Services.AddSingleton(p =>
@@ -52,6 +52,7 @@ builder.Services.AddTransient<RetrieveThenRead>();
 builder.Services.AddTransient<CompleteRetrieveRead>();
 
 app = builder.Build();
+using var _ = app.Services.GetRequiredService<ILogger<Program>>().BeginDataScope(("InstanceId", Guid.NewGuid().ToString("N")));
 app.Services.GetRequiredService<AzureEventSourceLogForwarder>().Start();
 
 app.UseStaticFiles();

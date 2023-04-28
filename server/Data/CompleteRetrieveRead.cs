@@ -46,7 +46,7 @@ public sealed class CompleteRetrieveRead
 			searchQuery = userQuery;
 		}
 
-		var searchResponse = await _elasticsearchClient.SearchAsync<BibleDocument>(s => s
+		var searchResponse = await _elasticsearchClient.SearchAsync<SourceDocument>(s => s
 			.Index("bible")
 			.Query(q => q.SimpleQueryString(q => q.Query(searchQuery))));
 
