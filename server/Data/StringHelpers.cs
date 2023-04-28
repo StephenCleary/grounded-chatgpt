@@ -23,5 +23,5 @@ public static class StringHelpers
 		return result.Replace("\r\n", "\n");
 	}
 
-	private static readonly Regex _templateRegex = new(@"{[a-zA-Z0-9]+}");
+	private static readonly Regex _templateRegex = new(@"{[a-zA-Z0-9_]+}");
 }
