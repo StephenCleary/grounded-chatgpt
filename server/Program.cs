@@ -1,6 +1,5 @@
 using Azure;
 using Azure.AI.OpenAI;
-using Blazored.SessionStorage;
 using Elastic.Clients.Elasticsearch;
 using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.Options;
@@ -43,9 +42,7 @@ builder.Services.AddSingleton(p =>
 			},
 		});
 });
-builder.Services.AddBlazoredSessionStorage();
 builder.Services.AddSingleton<GlobalCostTracker>();
-builder.Services.AddScoped<CostTracker>();
 builder.Services.AddTransient<CompleteRetrieveRead>();
 
 app = builder.Build();

@@ -1,6 +1,6 @@
 ﻿@page "/bible"
 @inject CompleteRetrieveRead Approach
-@inject CostTracker CostTracker
+@inject GlobalCostTracker CostTracker
 
 <PageTitle>Bible</PageTitle>
 
@@ -21,6 +21,6 @@
 	{
 		var result = await Approach.RunAsync(Prompt);
 		Response = result.Result;
-		await CostTracker.AddAsync(result.Cost);
+		CostTracker.Add(result.Cost);
 	}
 }

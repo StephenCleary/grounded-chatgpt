@@ -8,9 +8,9 @@
 
   <ItemGroup>
     <PackageReference Include="Azure.AI.OpenAI" Version="1.0.0-beta.5" />
-    <PackageReference Include="Blazored.SessionStorage" Version="2.3.0" />
     <PackageReference Include="Elastic.Clients.Elasticsearch" Version="8.1.0" />
     <PackageReference Include="Microsoft.Extensions.Azure" Version="1.6.3" />
+    <PackageReference Include="Nito.Disposables" Version="2.4.0" />
     <PackageReference Include="Nito.Logging" Version="1.0.1" />
     <PackageReference Include="Seq.Extensions.Logging" Version="6.1.0" />
     <PackageReference Include="SharpToken" Version="1.0.27" />

@@ -1,4 +1,6 @@
-﻿namespace server.Data;
+﻿using Nito.Disposables;
+
+namespace server.Data;
 
 public sealed class GlobalCostTracker
 {
@@ -10,5 +12,14 @@ public sealed class GlobalCostTracker
 	public void Add(Decimal cost)
 	{
 		lock (_mutex) { _cost += cost; }
+		OnChanged?.Invoke();
 	}
+
+    public IDisposable Subscribe(Action onChanged)
+    {
+		OnChanged += onChanged;
+		return Disposable.Create(() => OnChanged -= onChanged);
+    }
+
+    private Action? OnChanged;
 }

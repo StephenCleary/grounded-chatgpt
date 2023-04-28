@@ -1,4 +1,4 @@
-﻿@inject CostTracker CostTracker
+﻿@inject GlobalCostTracker CostTracker
 
 <div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
@@ -30,15 +30,9 @@
         <div class="nav-item px-3">
             <form>
                 <div class="form-group row">
-                    <label class="col col-form-label">Total cost</label>
+                    <label class="col col-form-label">Cost</label>
                     <div class="col">
-                        <InputText readonly="1" @bind-Value="GlobalCost" style="max-width:120px" />
-                    </div>
-                </div>
-                <div class="form-group row">
-                    <label class="col col-form-label">My cost</label>
-                    <div class="col">
-                        <InputText readonly="1" @bind-Value="Cost" placeholder="Loading..." style="max-width:120px" />
+                        <InputText readonly="1" @bind-Value="Cost" style="max-width:120px" />
                     </div>
                 </div>
             </form>
@@ -51,12 +45,6 @@
 
     private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
 
-    private string GlobalCost
-    {
-        get => $"${CostTracker.GlobalCost}";
-        set { }
-    }
-
     private string Cost
     {
         get => $"${CostTracker.Cost}";
@@ -68,9 +56,15 @@
         collapseNavMenu = !collapseNavMenu;
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    protected override void OnInitialized()
     {
-        await CostTracker.RefreshAsync();
-        StateHasChanged();
+        _costTrackerOnChanged = CostTracker.Subscribe(() => InvokeAsync(StateHasChanged));
     }
+
+    public void Dispose()
+    {
+        _costTrackerOnChanged?.Dispose();
+    }
+
+    private IDisposable? _costTrackerOnChanged;
 }

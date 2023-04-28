@@ -2,7 +2,6 @@
 using Elastic.Clients.Elasticsearch;
 using Microsoft.Extensions.Options;
 using server.Data.Elastic;
-using SharpToken;
 
 namespace server.Data;
 
@@ -25,7 +24,6 @@ public sealed class CompleteRetrieveRead
 	public async Task<(string Result, decimal Cost)> RunAsync(string userQuery)
 	{
 		userQuery = userQuery.Replace("\r\n", "\n");
-		var userQueryTokenCount = GptEncoding.GetEncoding("cl100k_base").Encode(userQuery).Count;
 
 		var searchQueryCompletionResponse = await _openAIClient.GetCompletionsAsync(
 			deploymentOrModelName: _aiOptions.ExtractDeployment,
@@ -37,7 +35,7 @@ public sealed class CompleteRetrieveRead
 				MaxTokens = 32,
 				StopSequences = { "\n" },
 			});
-		var cost = CostTracker.CostOfTokens(_aiOptions.ExtractDeployment, searchQueryCompletionResponse.Value.Usage.TotalTokens);
+		var cost = _aiOptions.ExtractModel.Cost(searchQueryCompletionResponse.Value.Usage.TotalTokens);
 
 		var searchQuery = searchQueryCompletionResponse.Value.Choices.FirstOrDefault()?.Text;
 		if (searchQuery == null)
@@ -73,7 +71,7 @@ public sealed class CompleteRetrieveRead
 				PresencePenalty = 0,
 			});
 		var chatCompletions = chatResponse.Value;
-		cost += CostTracker.CostOfTokens(_aiOptions.ChatDeployment, chatCompletions.Usage.TotalTokens);
+		cost += _aiOptions.ChatModel.Cost(chatCompletions.Usage.TotalTokens);
 		var choice = chatCompletions.Choices.FirstOrDefault();
 		if (choice == null)
 			return ("I don't know.", cost);
