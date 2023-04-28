@@ -38,6 +38,6 @@ public sealed class CostTracker
 	// https://azure.microsoft.com/en-us/pricing/details/cognitive-services/openai-service/
 	private static readonly Dictionary<string, decimal> TokenCostByModel = new()
 	{
-		{ "gpt-3.5-turbo", 0.002M / 1000M },
+		{ "gpt-35-turbo", 0.002M / 1000M },
 	};
 }
