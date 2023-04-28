@@ -2,12 +2,12 @@
 
 namespace server.Data;
 
-public sealed class OpenAIClientOptions : IOptions<OpenAIClientOptions>
+public sealed class OpenAIOptions : IOptions<OpenAIOptions>
 {
 	public string Uri { get; set; } = null!;
 	public string Apikey { get; set; } = null!;
 	public string ChatDeployment { get; set; } = null!;
 	public string ExtractDeployment { get; set; } = null!;
 
-	OpenAIClientOptions IOptions<OpenAIClientOptions>.Value => this;
+	OpenAIOptions IOptions<OpenAIOptions>.Value => this;
 }

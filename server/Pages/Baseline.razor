@@ -3,7 +3,7 @@
 @using Microsoft.Extensions.Options;
 @inject OpenAIClient OpenAIClient
 @inject CostTracker CostTracker
-@inject IOptions<server.Data.OpenAIClientOptions> AIOptions
+@inject IOptions<OpenAIOptions> OpenAIOptions
 
 <PageTitle>Baseline</PageTitle>
 
@@ -34,7 +34,7 @@
 		// Just shoot it off to ChatGPT.
 
 		var chatResponse = await OpenAIClient.GetChatCompletionsAsync(
-			deploymentOrModelName: AIOptions.Value.ChatDeployment,
+			deploymentOrModelName: OpenAIOptions.Value.ChatDeployment,
 			new ChatCompletionsOptions()
 			{
 				Messages =

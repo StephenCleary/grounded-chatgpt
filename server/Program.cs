@@ -7,7 +7,6 @@ using Microsoft.Extensions.Options;
 using Nito.Logging;
 using server.Data;
 using System.Text;
-using OpenAIClientOptions = server.Data.OpenAIClientOptions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -28,14 +27,14 @@ builder.Services.AddSingleton(new ElasticsearchClient(new ElasticsearchClientSet
         app.Services.GetRequiredService<ILogger<ElasticsearchClient>>().LogDebug(details.OriginalException, "ElasticSearch message: {Method} {Uri} {Request} => {StatusCode} {Response}", details.HttpMethod, details.Uri, request, details.HttpStatusCode, response);
     })));
 builder.Services.AddSingleton<ResourceIndexer>();
-builder.Services.Configure<OpenAIClientOptions>(builder.Configuration.GetRequiredSection("OpenAI"));
+builder.Services.Configure<OpenAIOptions>(builder.Configuration.GetRequiredSection("OpenAI"));
 builder.Services.AddSingleton(p =>
 {
-	var options = p.GetRequiredService<IOptions<OpenAIClientOptions>>().Value;
+	var options = p.GetRequiredService<IOptions<OpenAIOptions>>().Value;
 	return new OpenAIClient(
 		new Uri(options.Uri),
 		new AzureKeyCredential(options.Apikey),
-		new Azure.AI.OpenAI.OpenAIClientOptions()
+		new OpenAIClientOptions()
 		{
 			Diagnostics =
 			{

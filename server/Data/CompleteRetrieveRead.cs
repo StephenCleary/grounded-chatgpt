@@ -14,7 +14,7 @@ namespace server.Data;
 /// </summary>
 public sealed class CompleteRetrieveRead
 {
-	public CompleteRetrieveRead(ElasticsearchClient elasticsearchClient, OpenAIClient openAIClient, IOptions<OpenAIClientOptions> aiOptions, ILogger<CompleteRetrieveRead> logger)
+	public CompleteRetrieveRead(ElasticsearchClient elasticsearchClient, OpenAIClient openAIClient, IOptions<OpenAIOptions> aiOptions, ILogger<CompleteRetrieveRead> logger)
 	{
 		_elasticsearchClient = elasticsearchClient;
 		_openAIClient = openAIClient;
@@ -112,5 +112,5 @@ public sealed class CompleteRetrieveRead
 	private readonly ElasticsearchClient _elasticsearchClient;
 	private readonly OpenAIClient _openAIClient;
 	private readonly ILogger<CompleteRetrieveRead> _logger;
-	private readonly OpenAIClientOptions _aiOptions;
+	private readonly OpenAIOptions _aiOptions;
 }
