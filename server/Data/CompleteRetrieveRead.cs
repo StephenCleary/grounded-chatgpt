@@ -13,20 +13,22 @@ namespace server.Data;
 /// </summary>
 public sealed class CompleteRetrieveRead
 {
-	public CompleteRetrieveRead(ElasticsearchClient elasticsearchClient, OpenAIClient openAIClient, IOptions<OpenAIOptions> aiOptions, ILogger<CompleteRetrieveRead> logger)
+	public CompleteRetrieveRead(ElasticsearchClient elasticsearchClient, OpenAiClientProvider openAiClientProvider, ILogger<CompleteRetrieveRead> logger)
 	{
 		_elasticsearchClient = elasticsearchClient;
-		_openAIClient = openAIClient;
+		_openAiClientProvider = openAiClientProvider;
 		_logger = logger;
-		_aiOptions = aiOptions.Value;
 	}
 
 	public async Task<(string Result, decimal Cost)> RunAsync(string userQuery)
 	{
+		if (_openAiClientProvider.Client == null)
+			return ("{No API key}", 0);
+
 		userQuery = userQuery.Replace("\r\n", "\n");
 
-		var searchQueryCompletionResponse = await _openAIClient.GetCompletionsAsync(
-			deploymentOrModelName: _aiOptions.ExtractDeployment,
+		var searchQueryCompletionResponse = await _openAiClientProvider.Client.GetCompletionsAsync(
+			deploymentOrModelName: _openAiClientProvider.Options!.Value.ExtractDeployment,
 			new CompletionsOptions()
 			{
 				Prompts = { _queryTemplate.Template(new { question = userQuery }) },
@@ -35,7 +37,7 @@ public sealed class CompleteRetrieveRead
 				MaxTokens = 32,
 				StopSequences = { "\n" },
 			});
-		var cost = _aiOptions.ExtractModel.Cost(searchQueryCompletionResponse.Value.Usage.TotalTokens);
+		var cost = _openAiClientProvider.Options.Value.ExtractModel.Cost(searchQueryCompletionResponse.Value.Usage.TotalTokens);
 
 		var searchQuery = searchQueryCompletionResponse.Value.Choices.FirstOrDefault()?.Text;
 		if (searchQuery == null)
@@ -54,9 +56,9 @@ public sealed class CompleteRetrieveRead
 
 		var prompt = _promptTemplate.Template(new { sources = string.Join("\n", searchDocuments.Select(x => $"{x.Id}\t{x.Text}")) });
 
-		var chatResponse = await _openAIClient.GetChatCompletionsAsync(
-			deploymentOrModelName: _aiOptions.ChatDeployment,
-			new ChatCompletionsOptions()
+		var chatResponse = await _openAiClientProvider.Client.GetChatCompletionsAsync(
+			deploymentOrModelName: _openAiClientProvider.Options!.Value.ChatDeployment,
+            new ChatCompletionsOptions()
 			{
 				Messages =
 				{
@@ -71,7 +73,7 @@ public sealed class CompleteRetrieveRead
 				PresencePenalty = 0,
 			});
 		var chatCompletions = chatResponse.Value;
-		cost += _aiOptions.ChatModel.Cost(chatCompletions.Usage.TotalTokens);
+		cost += _openAiClientProvider.Options.Value.ChatModel.Cost(chatCompletions.Usage.TotalTokens);
 		var choice = chatCompletions.Choices.FirstOrDefault();
 		if (choice == null)
 			return ("I don't know.", cost);
@@ -108,7 +110,6 @@ public sealed class CompleteRetrieveRead
 	""";
 
 	private readonly ElasticsearchClient _elasticsearchClient;
-	private readonly OpenAIClient _openAIClient;
+	private readonly OpenAiClientProvider _openAiClientProvider;
 	private readonly ILogger<CompleteRetrieveRead> _logger;
-	private readonly OpenAIOptions _aiOptions;
 }

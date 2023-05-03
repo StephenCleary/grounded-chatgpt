@@ -1,0 +1,31 @@
+﻿@page "/admin"
+@inject OpenAiClientProvider OpenAiClientProvider
+
+<PageTitle>Admin</PageTitle>
+
+<h1>Admin</h1>
+
+<p>Congratulations! You've found this top-secret page with a totally unguessable URL!</p>
+
+<p>Seriously, tho. There's no authentication here, so if you clear the API key the demo will break for everyone. So please don't. Thanks!</p>
+
+<div><InputText @bind-Value="ApiKey" type="password" /></div>
+
+<div><button class="btn btn-primary" @onclick="SaveApiKey">Save API Key</button></div>
+
+<p>@Message</p>
+
+@code {
+	private string ApiKey { get; set; } = "";
+	private string Message { get; set; } = "";
+
+	private void SaveApiKey()
+	{
+		if (string.IsNullOrEmpty(ApiKey))
+			return;
+
+		OpenAiClientProvider.SetOptions(new OpenAIOptions { Apikey = ApiKey });
+		ApiKey = "";
+		Message = $"Saved API Key at {DateTimeOffset.Now}";
+	}
+}
