@@ -10,22 +10,22 @@
 <EditForm Model="@Options" OnSubmit="@Save">
 	<div class="form-group">
 		<label>OpenAI API Endpoint</label>
-		<InputText @bind-Value="Options.Uri" />
+		<InputText @bind-Value="Options.Uri" class="form-control" />
 	</div>
 	<div class="form-group">
 		<label>OpenAI API Key</label>
-		<InputText @bind-Value="Options.Apikey" type="password" />
+		<InputText @bind-Value="Options.Apikey" type="password" class="form-control" />
 	</div>
 	<div class="form-group">
 		<label>Deployment for Chat</label>
-		<InputText @bind-Value="Options.ChatDeployment" />
+		<InputText @bind-Value="Options.ChatDeployment" class="form-control" />
 	</div>
 	<div class="form-group">
 		<label>Deployment for Completion</label>
-		<InputText @bind-Value="Options.ExtractDeployment" />
+		<InputText @bind-Value="Options.ExtractDeployment" class="form-control" />
 	</div>
 
-	<button type="submit">Save</button>
+	<button type="submit" class="btn btn-primary">Save</button>
 </EditForm>
 
 <p>@Message</p>

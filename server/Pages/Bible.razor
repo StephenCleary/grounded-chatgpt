@@ -6,21 +6,33 @@
 
 <h1>AI-Assisted Bible Search</h1>
 
-<InputTextArea @bind-Value="Prompt" />
+<EditForm Model="@this" OnSubmit="@SubmitAsync">
+	<div class="form-group">
+		<label>Prompt</label>
+		<InputTextArea @bind-Value="Prompt" class="form-control" />
+	</div>
 
-<button class="btn btn-primary" @onclick="SubmitAsync">Submit</button>
+	<div class="form-group">
+		<button type="submit" class="btn btn-primary" disabled="@SubmitDisabled">Submit</button>
+	</div>
 
-<h2>Response:</h2>
-<p>@Response</p>
+	<div class="form-group">
+		<label>Response</label>
+		<InputTextArea @bind-Value="Response" class="form-control" readonly="1" rows="13" />
+	</div>
+</EditForm>
 
 @code {
 	private string Prompt { get; set; } = "";
 	private string Response { get; set; } = "";
+	private bool SubmitDisabled { get; set; }
 
 	private async Task SubmitAsync()
 	{
-		var result = await Approach.RunAsync(Prompt);
-		Response = result.Result;
-		CostTracker.Add(result.Cost);
+		SubmitDisabled = true;
+		var (result, cost) = await Approach.RunAsync(Prompt);
+		Response = result;
+		SubmitDisabled = false;
+		CostTracker.Add(cost);
 	}
 }
