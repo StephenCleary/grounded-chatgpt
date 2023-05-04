@@ -1,7 +1,4 @@
 ﻿using Azure.AI.OpenAI;
-using Elastic.Clients.Elasticsearch;
-using Microsoft.Extensions.Options;
-using server.Data.Elastic;
 
 namespace server.Data;
 
@@ -13,9 +10,9 @@ namespace server.Data;
 /// </summary>
 public sealed class CompleteRetrieveRead
 {
-	public CompleteRetrieveRead(ElasticsearchClient elasticsearchClient, OpenAiClientProvider openAiClientProvider, ILogger<CompleteRetrieveRead> logger)
+	public CompleteRetrieveRead(ElasticsearchService elasticsearchService, OpenAiClientProvider openAiClientProvider, ILogger<CompleteRetrieveRead> logger)
 	{
-		_elasticsearchClient = elasticsearchClient;
+		_elasticsearchService = elasticsearchService;
 		_openAiClientProvider = openAiClientProvider;
 		_logger = logger;
 	}
@@ -46,11 +43,7 @@ public sealed class CompleteRetrieveRead
 			searchQuery = userQuery;
 		}
 
-		var searchResponse = await _elasticsearchClient.SearchAsync<SourceDocument>(s => s
-			.Index("bible")
-			.Query(q => q.SimpleQueryString(q => q.Query(searchQuery))));
-
-		var searchDocuments = searchResponse.Documents;
+		var searchDocuments = await _elasticsearchService.SearchAsync("bible", searchQuery);
 		if (searchDocuments.Count == 0)
 			return ("I don't know.", 0);
 
@@ -109,7 +102,7 @@ public sealed class CompleteRetrieveRead
 
 	""";
 
-	private readonly ElasticsearchClient _elasticsearchClient;
+	private readonly ElasticsearchService _elasticsearchService;
 	private readonly OpenAiClientProvider _openAiClientProvider;
 	private readonly ILogger<CompleteRetrieveRead> _logger;
 }

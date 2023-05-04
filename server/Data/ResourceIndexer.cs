@@ -1,15 +1,12 @@
-﻿using Elastic.Clients.Elasticsearch;
-using Elastic.Transport;
-using PewBibleKjv.Text;
-using server.Data.Elastic;
+﻿using PewBibleKjv.Text;
 
 namespace server.Data;
 
 public sealed class ResourceIndexer
 {
-    public ResourceIndexer(ElasticsearchClient client, ILogger<ResourceIndexer> logger)
+    public ResourceIndexer(ElasticsearchService elasticsearchService, ILogger<ResourceIndexer> logger)
     {
-        _client = client;
+        _elasticsearchService = elasticsearchService;
         _logger = logger;
     }
 
@@ -17,16 +14,14 @@ public sealed class ResourceIndexer
     {
         try
         {
-            if ((await _client.Indices.ExistsAsync("bible")).Exists)
-                await _client.Indices.DeleteAsync("bible");
-
-            await _client.Indices.CreateAsync("bible");
+            await _elasticsearchService.DeleteIndexAsync("bible");
+            await _elasticsearchService.CreateIndexAsync("bible");
 
             foreach (var book in Structure.Books)
             {
                 foreach (var chapter in book.Chapters)
                 {
-                    var documents = new List<object>();
+                    var documents = new List<SourceDocument>();
 
                     for (int verse = chapter.BeginVerse; verse != chapter.EndVerse; ++verse)
                     {
@@ -36,18 +31,16 @@ public sealed class ResourceIndexer
                         {
                             Id = documentId,
                             Text = text,
-                            Url = "https://TODO",
+                            Uri = "https://TODO",
                         });
                     }
 
-                    await _client.IndexManyAsync(documents, "bible");
+                    await _elasticsearchService.IndexAsync("bible", documents);
                     progress?.Report($"Completed {book.Name} {chapter.Index + 1}");
                 }
             }
-        }
-        catch (TransportException ex) when (ex.ApiCallDetails.HttpStatusCode == 400)
-        {
-            progress?.Report("Already indexed.");
+
+            progress?.Report("Done!");
         }
         catch (Exception ex)
         {
@@ -56,6 +49,6 @@ public sealed class ResourceIndexer
         }
     }
 
-    private readonly ElasticsearchClient _client;
+    private readonly ElasticsearchService _elasticsearchService;
     private readonly ILogger<ResourceIndexer> _logger;
 }
