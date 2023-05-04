@@ -1,5 +1,6 @@
 ﻿using Elastic.Clients.Elasticsearch;
 using Elastic.Clients.Elasticsearch.IndexManagement;
+using Elastic.Transport;
 using System.Text;
 
 namespace server.Data;
@@ -41,7 +42,7 @@ public sealed class ElasticsearchService
 
 	public async Task DeleteIndexAsync(string index)
 	{
-		var response = await _client.Indices.DeleteAsync(new DeleteIndexRequest(index) { RequestConfiguration = { ThrowExceptions = false }});
+		var response = await _client.Indices.DeleteAsync(new DeleteIndexRequest(index) { RequestConfiguration = new RequestConfiguration() { ThrowExceptions = false }});
 		
 	}
 
