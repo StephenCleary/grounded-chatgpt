@@ -5,27 +5,52 @@
 
 <h1>Admin</h1>
 
-<p>Congratulations! You've found this top-secret page with a totally unguessable URL!</p>
+<p>Setup parameters</p>
 
-<p>Seriously, tho. There's no authentication here, so if you clear the API key the demo will break for everyone. So please don't. Thanks!</p>
+<EditForm Model="@Options" OnSubmit="@Save">
+	<div class="form-group">
+		<label>OpenAI API Endpoint</label>
+		<InputText @bind-Value="Options.Uri" />
+	</div>
+	<div class="form-group">
+		<label>OpenAI API Key</label>
+		<InputText @bind-Value="Options.Apikey" type="password" />
+	</div>
+	<div class="form-group">
+		<label>Deployment for Chat</label>
+		<InputText @bind-Value="Options.ChatDeployment" />
+	</div>
+	<div class="form-group">
+		<label>Deployment for Completion</label>
+		<InputText @bind-Value="Options.ExtractDeployment" />
+	</div>
 
-<div><InputText @bind-Value="ApiKey" type="password" /></div>
-
-<div><button class="btn btn-primary" @onclick="SaveApiKey">Save API Key</button></div>
+	<button type="submit">Save</button>
+</EditForm>
 
 <p>@Message</p>
 
 @code {
-	private string ApiKey { get; set; } = "";
+	private OpenAIOptions Options { get; set; } = null!;
 	private string Message { get; set; } = "";
 
-	private void SaveApiKey()
+	protected override async Task OnInitializedAsync()
 	{
-		if (string.IsNullOrEmpty(ApiKey))
-			return;
+		Options = OpenAiClientProvider.Options?.Value ?? new OpenAIOptions
+		{
+			Uri = "https://clearyopenaitest.openai.azure.com/",
+			Apikey = "",
+			ChatDeployment = "gpt-35-turbo",
+			ExtractDeployment = "gpt-35-turbo",
+		};
+	}
 
-		OpenAiClientProvider.SetOptions(new OpenAIOptions { Apikey = ApiKey });
-		ApiKey = "";
-		Message = $"Saved API Key at {DateTimeOffset.Now}";
+	private void Save()
+	{
+		OpenAiClientProvider.SetOptions(Options);
+		if (OpenAiClientProvider.Client == null)
+			Message = $"Saved at {DateTimeOffset.Now}; client NOT created";
+		else
+			Message = $"Saved at {DateTimeOffset.Now}; good to go!";
 	}
 }
