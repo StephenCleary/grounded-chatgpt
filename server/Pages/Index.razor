@@ -1,21 +1,54 @@
 ﻿@page "/"
 @inject ResourceIndexer ResourceIndexer
+@inject ElasticsearchService ElasticsearchService
 
 <h1>Setup</h1>
 
-<button class="btn btn-primary" @onclick="IndexData">Index</button>
+<InputTextOnChanged @bind-Value="createIndexName" />
+<button class="btn btn-primary" @onclick="CreateIndexAsync" disabled="@CreateIndexDisabled">Create Index</button>
+
+<hr/>
+
+<InputSelect @bind-Value="selectedIndex">
+    <option value="">Select Index</option>
+    @foreach (var item in indices)
+    {
+        <option value="@item">@item</option>
+    }
+</InputSelect>
+
+<button class="btn btn-primary" @onclick="IndexBibleAsync" disabled="@IndexBibleDisabled">Index Bible</button>
 
 <p>Indexer status: @indexerStatus</p>
 
 @code {
-    private string indexerStatus = "";
+    private string createIndexName = "";
+    private bool CreateIndexDisabled => createIndexName == "";
 
-    private async Task IndexData()
+    private string indexerStatus = "";
+    private IReadOnlyCollection<string> indices = Array.Empty<string>();
+    private string selectedIndex = "";
+    private bool IndexBibleDisabled => selectedIndex != "bible";
+
+    private async Task CreateIndexAsync()
+    {
+        await ElasticsearchService.CreateIndexAsync(createIndexName);
+        indices = await ElasticsearchService.GetIndicesAsync();
+        createIndexName = "";
+        indexerStatus = $"Created index {createIndexName}";
+    }
+
+    private async Task IndexBibleAsync()
     {
         await ResourceIndexer.IndexBibleAsync(new Progress<string>(report =>
         {
             indexerStatus = report;
             StateHasChanged();
         }));
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        indices = await ElasticsearchService.GetIndicesAsync();
     }
 }
