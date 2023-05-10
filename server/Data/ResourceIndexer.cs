@@ -7,10 +7,9 @@ namespace server.Data;
 
 public sealed class ResourceIndexer
 {
-    public ResourceIndexer(ElasticsearchService elasticsearchService, IOptions<OpenAIOptions> openAIOptions, ILogger<ResourceIndexer> logger)
+    public ResourceIndexer(ElasticsearchService elasticsearchService, ILogger<ResourceIndexer> logger)
     {
         _elasticsearchService = elasticsearchService;
-		_openAIOptions = openAIOptions.Value;
 		_logger = logger;
     }
 
@@ -60,7 +59,8 @@ public sealed class ResourceIndexer
             progress?.Report($"Processing {uri}");
             var doc = new HtmlDocument();
             doc.LoadHtml(html);
-            var text = string.Join(" ", doc.DocumentNode.Descendants()
+            var text = string.Join(" ", doc.DocumentNode.SelectSingleNode("//body")
+                .Descendants()
                 .Where(n => !n.HasChildNodes && !string.IsNullOrWhiteSpace(n.InnerText))
                 .Select(n => HtmlEntity.DeEntitize(n.InnerText)));
             text = PreprocessText(text);
@@ -87,28 +87,28 @@ public sealed class ResourceIndexer
     }
 
     /// <summary>
-    /// Replace all '\r', '\n' with ' ', and replace consecutive runs of spaces with single spaces.
+    /// Replace all '\r', '\n', '\t' with ' ', and replace consecutive runs of spaces with single spaces.
     /// </summary>
     private static string PreprocessText(string text)
     {
-        text = text.Replace('\r', ' ').Replace('\n', ' ');
+        text = text.Replace('\r', ' ').Replace('\n', ' ').Replace('\t', ' ');
         return Regex.Replace(text, " +", " ").Trim();
     }
 
     private IEnumerable<SourceDocument> Split(SourceDocument sourceDocument)
     {
-        var tokens = _openAIOptions.ChatModel.TokenCount(sourceDocument.Text);
+        var tokens = Model.Gpt35Turbo.TokenCount(sourceDocument.Text);
         if (tokens < MaxSourceTokenLength)
         {
             yield return sourceDocument;
             yield break;
         }
 
-        // Split it approximately in half, but on a sentence boundary if possible.
+        // Split it approximately in half, but on a sentence boundary if possible; if not, on a word boundary; if not, just in half.
         var splitIndex = TryFindSplitIndex(SentenceEndings, sourceDocument.Text);
         if (splitIndex == -1)
             splitIndex = TryFindSplitIndex(WordBreaks, sourceDocument.Text);
-        if (splitIndex == -1)
+        if (splitIndex <= 0 || splitIndex >= sourceDocument.Text.Length)
             splitIndex = sourceDocument.Text.Length / 2;
 
         var first = new SourceDocument
@@ -132,8 +132,8 @@ public sealed class ResourceIndexer
         static int TryFindSplitIndex(char[] delimiters, string text)
         {
 			var halfIndex = text.Length / 2;
-			var previousSentenceEnd = text.LastIndexOfAny(SentenceEndings, halfIndex);
-			var nextSentenceEnd = text.IndexOfAny(SentenceEndings, halfIndex);
+			var previousSentenceEnd = text.LastIndexOfAny(delimiters, halfIndex);
+			var nextSentenceEnd = text.IndexOfAny(delimiters, halfIndex);
             if (previousSentenceEnd == -1 && nextSentenceEnd == -1)
                 return -1;
             if (previousSentenceEnd == -1)
@@ -145,7 +145,6 @@ public sealed class ResourceIndexer
 	}
 
     private readonly ElasticsearchService _elasticsearchService;
-	private readonly OpenAIOptions _openAIOptions;
 	private readonly ILogger<ResourceIndexer> _logger;
 
     private const int MaxSourceTokenLength = 1024; // TODO: also reduce search results.
