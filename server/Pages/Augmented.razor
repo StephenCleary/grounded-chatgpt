@@ -41,7 +41,7 @@
 	private async Task SubmitAsync()
 	{
 		SubmitDisabled = true;
-		var (result, cost) = await Approach.RunAsync(selectedIndex, Roles.General, Prompt);
+		var (result, cost, referenceMap) = await Approach.RunAsync(selectedIndex, Roles.General, Prompt);
 		Response = result;
 		SubmitDisabled = false;
 		CostTracker.Add(cost);

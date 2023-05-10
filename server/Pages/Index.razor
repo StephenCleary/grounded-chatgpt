@@ -58,7 +58,7 @@
     {
         await ElasticsearchService.DeleteIndexAsync("bible");
         await ElasticsearchService.CreateIndexAsync("bible");
-        await ResourceIndexer.IndexBibleAsync(selectedIndex, new Progress<string>(report =>
+        await ResourceIndexer.IndexBibleAsync("bible", new Progress<string>(report =>
         {
             indexerStatus = report;
             StateHasChanged();

@@ -17,13 +17,14 @@ public sealed class CompleteRetrieveRead
 		_logger = logger;
 	}
 
-	public async Task<(string Result, decimal Cost)> RunAsync(string searchIndex, string role, string question)
+	public async Task<(string Result, decimal Cost, IReadOnlyDictionary<string, string> References)> RunAsync(string searchIndex, string role, string question)
 	{
 		if (_openAiClientProvider.Client == null)
-			return ("{No API key}", 0);
+			return ("{No API key}", 0, new Dictionary<string, string>());
 
         question = question.Replace("\r\n", "\n");
 
+		// Extract search keywords from the user's question. This is necessary because we're doing lexical search instead of semantic or vector.
 		var searchQueryCompletionResponse = await _openAiClientProvider.Client.GetCompletionsAsync(
 			deploymentOrModelName: _openAiClientProvider.Options!.Value.ExtractDeployment,
 			new CompletionsOptions()
@@ -35,7 +36,6 @@ public sealed class CompleteRetrieveRead
 				StopSequences = { "\n" },
 			});
 		var cost = _openAiClientProvider.Options.Value.ExtractModel.Cost(searchQueryCompletionResponse.Value.Usage.TotalTokens);
-
 		var searchQuery = searchQueryCompletionResponse.Value.Choices.FirstOrDefault()?.Text;
 		if (searchQuery == null)
 		{
@@ -43,12 +43,24 @@ public sealed class CompleteRetrieveRead
 			searchQuery = question;
 		}
 
+		// Search ElasticSearch using the extracted search keywords.
 		var searchDocuments = await _elasticsearchService.SearchAsync(searchIndex, searchQuery);
 		if (searchDocuments.Count == 0)
-			return ("I don't know.", 0);
+			return ("I don't know.", cost, new Dictionary<string, string>());
 
-		var prompt = _promptTemplate.Template(new { role, sources = string.Join("\n", searchDocuments.Select(x => $"{x.Id}\t{x.Text}")) });
+		// Map simple reference numbers to the source URIs.
+		var referenceMap = searchDocuments.Select((sourceDocument, i) => (sourceDocument, i)).ToDictionary(x => $"[{x.i + 1}]", x => x.sourceDocument.Uri);
 
+		// Use the Role and the search Results to build a system prompt defining how the AI should respond to the user.
+		var searchDocumentsUsed = searchDocuments.AsEnumerable();
+		var prompt = _promptTemplate.Template(new { role, sources = string.Join("\n", searchDocuments.Select((x, i) => $"{i + 1}\t{x.Text}")) });
+		while (_openAiClientProvider.Options!.Value.ChatModel.TokenCount(prompt) > MaximumSystemPromptTokenLength)
+		{
+			searchDocumentsUsed = searchDocumentsUsed.Take(searchDocumentsUsed.Count() - 1);
+			prompt = _promptTemplate.Template(new { role, sources = string.Join("\n", searchDocuments.Select((x, i) => $"{i + 1}\t{x.Text}")) });
+		}
+
+		// Send the system prompt and the user's question to the AI.
 		var chatResponse = await _openAiClientProvider.Client.GetChatCompletionsAsync(
 			deploymentOrModelName: _openAiClientProvider.Options!.Value.ChatDeployment,
             new ChatCompletionsOptions()
@@ -60,7 +72,7 @@ public sealed class CompleteRetrieveRead
 				},
 				ChoicesPerPrompt = 1,
 				Temperature = (float)0.7,
-				MaxTokens = 1024,
+				MaxTokens = RequestedResponseTokenLength,
 				NucleusSamplingFactor = (float)0.95,
 				FrequencyPenalty = 0,
 				PresencePenalty = 0,
@@ -69,9 +81,9 @@ public sealed class CompleteRetrieveRead
 		cost += _openAiClientProvider.Options.Value.ChatModel.Cost(chatCompletions.Usage.TotalTokens);
 		var choice = chatCompletions.Choices.FirstOrDefault();
 		if (choice == null)
-			return ("I don't know.", cost);
+			return ("I don't know.", cost, referenceMap);
 
-		return (choice.Message.Content, cost);
+		return (choice.Message.Content, cost, referenceMap);
 	}
 
 	private const string _queryTemplate =
@@ -90,9 +102,9 @@ public sealed class CompleteRetrieveRead
     """
 	{role}
 	Answer the following question. You may include multiple answers, but each answer may only use the data provided in the References below.
-	Each Reference has a name followed by tab and then its data.
-	Use square brakets to indicate which Reference was used, e.g. [ABC123]
-	Don't combine References; list each Reference separately, e.g. [ABC123][DEF456]
+	Each Reference has a number followed by tab and then its data.
+	Use square brakets to indicate which Reference was used, e.g. [0]
+	Don't combine References; list each Reference separately, e.g. [1][2]
 	If you cannot answer using the References below, say you don't know. Only provide answers that include at least one Reference name.
 	If asking a clarifying question to the user would help, ask the question.
 	Do not comment on unused References.
@@ -101,6 +113,11 @@ public sealed class CompleteRetrieveRead
 	{sources}
 
 	""";
+
+	// The model limit is 8k, so reserving 6k for the system prompt leaves 1k each for the user's question and the model's response.
+	// This generally allows for ~5 search responses, since they are limited to 1k each.
+	private const int MaximumSystemPromptTokenLength = 1024 * 6;
+	private const int RequestedResponseTokenLength = 1024;
 
 	private readonly ElasticsearchService _elasticsearchService;
 	private readonly OpenAiClientProvider _openAiClientProvider;
