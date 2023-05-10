@@ -9,6 +9,14 @@
 
 <hr/>
 
+<h2>Index the Bible</h2>
+
+<p>Bible data always goes into the <code>bible</code> index.</p>
+
+<button class="btn btn-primary" @onclick="IndexBibleAsync">Index Bible</button>
+
+<h2>Index the Web</h2>
+
 <InputSelect @bind-Value="selectedIndex">
     <option value="">Select Index</option>
     @foreach (var item in indices)
@@ -17,7 +25,11 @@
     }
 </InputSelect>
 
-<button class="btn btn-primary" @onclick="IndexBibleAsync" disabled="@IndexBibleDisabled">Index Bible</button>
+<InputTextOnChanged @bind-Value="uri" />
+
+<button class="btn btn-primary" @onclick="IndexUrlAsync" disabled="@CannotIndexUri">Index Website</button>
+
+<hr />
 
 <p>Indexer status: @indexerStatus</p>
 
@@ -28,7 +40,11 @@
     private string indexerStatus = "";
     private IReadOnlyCollection<string> indices = Array.Empty<string>();
     private string selectedIndex = "";
-    private bool IndexBibleDisabled => selectedIndex != "bible";
+    private bool SelectedIndexIsInvalid => selectedIndex == "";
+
+    private string uri = "";
+    private bool UriIsInvalid => uri == "";
+    private bool CannotIndexUri => UriIsInvalid || SelectedIndexIsInvalid;
 
     private async Task CreateIndexAsync()
     {
@@ -40,7 +56,18 @@
 
     private async Task IndexBibleAsync()
     {
-        await ResourceIndexer.IndexBibleAsync(new Progress<string>(report =>
+        await ElasticsearchService.DeleteIndexAsync("bible");
+        await ElasticsearchService.CreateIndexAsync("bible");
+        await ResourceIndexer.IndexBibleAsync(selectedIndex, new Progress<string>(report =>
+        {
+            indexerStatus = report;
+            StateHasChanged();
+        }));
+    }
+
+    private async Task IndexUrlAsync()
+    {
+        await ResourceIndexer.IndexUriAsync(selectedIndex, uri, new Progress<string>(report =>
         {
             indexerStatus = report;
             StateHasChanged();

@@ -30,7 +30,7 @@
 	private async Task SubmitAsync()
 	{
 		SubmitDisabled = true;
-		var (result, cost) = await Approach.RunAsync(Prompt);
+		var (result, cost) = await Approach.RunAsync("bible", Roles.Bible, Prompt);
 		Response = result;
 		SubmitDisabled = false;
 		CostTracker.Add(cost);

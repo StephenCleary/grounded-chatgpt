@@ -1,0 +1,54 @@
+﻿@page "/augmented"
+@inject CompleteRetrieveRead Approach
+@inject GlobalCostTracker CostTracker
+@inject ElasticsearchService ElasticsearchService
+
+<PageTitle>Augmented</PageTitle>
+
+<h1>Augmented Retrieval Generation</h1>
+
+<EditForm Model="@this" OnSubmit="@SubmitAsync">
+	<div class="form-group">
+		<label>Prompt</label>
+		<InputTextArea @bind-Value="Prompt" class="form-control" />
+	</div>
+
+	<InputSelect @bind-Value="selectedIndex">
+		<option value="">Select Index</option>
+		@foreach (var item in indices)
+		{
+			<option value="@item">@item</option>
+		}
+	</InputSelect>
+
+	<div class="form-group">
+		<button type="submit" class="btn btn-primary" disabled="@SubmitDisabled">Submit</button>
+	</div>
+
+	<div class="form-group">
+		<label>Response</label>
+		<InputTextArea @bind-Value="Response" class="form-control" readonly="1" rows="13" />
+	</div>
+</EditForm>
+
+@code {
+	private string Prompt { get; set; } = "";
+	private string Response { get; set; } = "";
+	private bool SubmitDisabled { get; set; }
+	private string selectedIndex = "";
+	private IReadOnlyCollection<string> indices = Array.Empty<string>();
+
+	private async Task SubmitAsync()
+	{
+		SubmitDisabled = true;
+		var (result, cost) = await Approach.RunAsync(selectedIndex, Roles.General, Prompt);
+		Response = result;
+		SubmitDisabled = false;
+		CostTracker.Add(cost);
+	}
+
+	protected override async Task OnInitializedAsync()
+	{
+		indices = await ElasticsearchService.GetIndicesAsync();
+	}
+}

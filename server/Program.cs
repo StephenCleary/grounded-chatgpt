@@ -1,8 +1,6 @@
-using Elastic.Clients.Elasticsearch;
 using Microsoft.Extensions.Azure;
 using Nito.Logging;
 using server.Data;
-using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 

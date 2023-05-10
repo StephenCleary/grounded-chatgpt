@@ -17,18 +17,18 @@ public sealed class CompleteRetrieveRead
 		_logger = logger;
 	}
 
-	public async Task<(string Result, decimal Cost)> RunAsync(string userQuery)
+	public async Task<(string Result, decimal Cost)> RunAsync(string searchIndex, string role, string question)
 	{
 		if (_openAiClientProvider.Client == null)
 			return ("{No API key}", 0);
 
-		userQuery = userQuery.Replace("\r\n", "\n");
+        question = question.Replace("\r\n", "\n");
 
 		var searchQueryCompletionResponse = await _openAiClientProvider.Client.GetCompletionsAsync(
 			deploymentOrModelName: _openAiClientProvider.Options!.Value.ExtractDeployment,
 			new CompletionsOptions()
 			{
-				Prompts = { _queryTemplate.Template(new { question = userQuery }) },
+				Prompts = { _queryTemplate.Template(new { question }) },
 				ChoicesPerPrompt = 1,
 				Temperature = 0,
 				MaxTokens = 32,
@@ -39,15 +39,15 @@ public sealed class CompleteRetrieveRead
 		var searchQuery = searchQueryCompletionResponse.Value.Choices.FirstOrDefault()?.Text;
 		if (searchQuery == null)
 		{
-			_logger.LogWarning("Unable to determine query for user input {userQuery}", userQuery);
-			searchQuery = userQuery;
+			_logger.LogWarning("Unable to determine query for user input {userQuery}", question);
+			searchQuery = question;
 		}
 
-		var searchDocuments = await _elasticsearchService.SearchAsync("bible", searchQuery);
+		var searchDocuments = await _elasticsearchService.SearchAsync(searchIndex, searchQuery);
 		if (searchDocuments.Count == 0)
 			return ("I don't know.", 0);
 
-		var prompt = _promptTemplate.Template(new { sources = string.Join("\n", searchDocuments.Select(x => $"{x.Id}\t{x.Text}")) });
+		var prompt = _promptTemplate.Template(new { role, sources = string.Join("\n", searchDocuments.Select(x => $"{x.Id}\t{x.Text}")) });
 
 		var chatResponse = await _openAiClientProvider.Client.GetChatCompletionsAsync(
 			deploymentOrModelName: _openAiClientProvider.Options!.Value.ChatDeployment,
@@ -56,7 +56,7 @@ public sealed class CompleteRetrieveRead
 				Messages =
 				{
 					new(ChatRole.System, prompt),
-					new(ChatRole.User, userQuery),
+					new(ChatRole.User, question),
 				},
 				ChoicesPerPrompt = 1,
 				Temperature = (float)0.7,
@@ -87,12 +87,12 @@ public sealed class CompleteRetrieveRead
 	""";
 
 	private const string _promptTemplate =
-	"""
-	You are an intelligent assistant helping people with questions about the Bible.
+    """
+	{role}
 	Answer the following question. You may include multiple answers, but each answer may only use the data provided in the References below.
 	Each Reference has a name followed by tab and then its data.
-	Use square brakets to indicate which Reference was used, e.g. [John 3:16]
-	Don't combine References; list each Reference separately, e.g. [Genesis 1:1][John 3:16]
+	Use square brakets to indicate which Reference was used, e.g. [ABC123]
+	Don't combine References; list each Reference separately, e.g. [ABC123][DEF456]
 	If you cannot answer using the References below, say you don't know. Only provide answers that include at least one Reference name.
 	If asking a clarifying question to the user would help, ask the question.
 	Do not comment on unused References.
