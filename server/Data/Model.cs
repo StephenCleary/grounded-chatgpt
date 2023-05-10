@@ -7,7 +7,7 @@ public abstract class Model
 	public static Model Parse(string name) => name switch
 	{
 		Gpt35TurboName => Gpt35Turbo,
-		_ => throw new NotImplementedException(),
+		_ => throw new NotImplementedException($"Unknown model {name}"),
 	};
 	public static readonly Model Gpt35Turbo = new Gpt35TurboModel();
 
