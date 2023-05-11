@@ -1,7 +1,8 @@
 ﻿using HtmlAgilityPack;
-using Microsoft.Extensions.Options;
 using PewBibleKjv.Text;
 using System.Text.RegularExpressions;
+using UglyToad.PdfPig;
+using Structure = PewBibleKjv.Text.Structure;
 
 namespace server.Data;
 
@@ -68,16 +69,41 @@ public sealed class ResourceIndexer
 
 			progress?.Report($"Indexing {uri}");
 			var documentId = doc.DocumentNode.SelectSingleNode("//title")?.InnerText ?? uri;
-            foreach (var batch in Split(new SourceDocument
+            await IndexChunks(indexName, new SourceDocument
             {
                 Id = documentId,
                 Text = text,
                 Uri = uri,
                 Name = documentId,
-            }).Chunk(20))
+            });
+
+            progress?.Report("Done!");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Indexing failed.");
+            progress?.Report($"Failed: {ex}");
+        }
+    }
+
+    public async Task IndexPdfAsync(string indexName, string pdfFileName, Stream pdf, IProgress<string> progress)
+    {
+        try
+        {
+            progress?.Report($"Extracting text from {pdfFileName}");
+            using var doc = PdfDocument.Open(pdf);
+            var text = string.Join(" ", doc.GetPages().SelectMany(x => x.GetWords()));
+            text = PreprocessText(text);
+
+            progress?.Report($"Indexing {pdfFileName}");
+            var documentId = pdfFileName;
+            await IndexChunks(indexName, new SourceDocument
             {
-                await _elasticsearchService.IndexAsync(indexName, batch);
-            }
+                Id = documentId,
+                Text = text,
+                Uri = pdfFileName,
+                Name = documentId,
+            });
 
             progress?.Report("Done!");
         }
@@ -95,6 +121,13 @@ public sealed class ResourceIndexer
     {
         text = text.Replace('\r', ' ').Replace('\n', ' ').Replace('\t', ' ');
         return Regex.Replace(text, " +", " ").Trim();
+    }
+
+    private async Task IndexChunks(string indexName, SourceDocument sourceDocument)
+    {
+        // Split the source document into chunks, then batch-index them into Elasticsearch.
+        foreach (var batch in Split(sourceDocument).Chunk(20))
+            await _elasticsearchService.IndexAsync(indexName, batch);
     }
 
     private IEnumerable<SourceDocument> Split(SourceDocument sourceDocument)

@@ -7,13 +7,15 @@
 <InputTextOnChanged @bind-Value="createIndexName" />
 <button class="btn btn-primary" @onclick="CreateIndexAsync" disabled="@CreateIndexDisabled">Create Index</button>
 
-<hr/>
+<hr />
 
 <h2>Index the Bible</h2>
 
 <p>Bible data always goes into the <code>bible</code> index.</p>
 
 <button class="btn btn-primary" @onclick="IndexBibleAsync">Index Bible</button>
+
+<hr />
 
 <h2>Index the Web</h2>
 
@@ -27,7 +29,21 @@
 
 <InputTextOnChanged @bind-Value="uri" />
 
-<button class="btn btn-primary" @onclick="IndexUrlAsync" disabled="@CannotIndexUri">Index Website</button>
+<button class="btn btn-primary" @onclick="IndexUriAsync" disabled="@CannotIndexUri">Index Website</button>
+
+<hr />
+
+<h2>Index PDF Files</h2>
+
+<InputSelect @bind-Value="selectedIndex">
+    <option value="">Select Index</option>
+    @foreach (var item in indices)
+    {
+        <option value="@item">@item</option>
+    }
+</InputSelect>
+
+<InputFile OnChange="IndexFilesAsync" multiple disabled="@SelectedIndexIsInvalid" />
 
 <hr />
 
@@ -65,13 +81,25 @@
         }));
     }
 
-    private async Task IndexUrlAsync()
+    private async Task IndexUriAsync()
     {
         await ResourceIndexer.IndexUriAsync(selectedIndex, uri, new Progress<string>(report =>
         {
             indexerStatus = report;
             StateHasChanged();
         }));
+    }
+
+    private async Task IndexFilesAsync(InputFileChangeEventArgs e)
+    {
+        foreach (var file in e.GetMultipleFiles(int.MaxValue))
+        {
+            await ResourceIndexer.IndexPdfAsync(selectedIndex, file.Name, file.OpenReadStream(long.MaxValue), new Progress<string>(report =>
+            {
+                indexerStatus = report;
+                StateHasChanged();
+            }));
+        }
     }
 
     protected override async Task OnInitializedAsync()
