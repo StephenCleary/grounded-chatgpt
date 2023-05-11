@@ -13,7 +13,7 @@ public sealed class BaselineChatGpt
 		_openAiClientProvider = openAiClientProvider;
 	}
 
-	public async Task<(string Result, decimal Cost)> RunAsync(string? role, string question)
+	public async Task<(string Result, decimal Cost)> RunAsync(string role, string question)
 	{
 		// Just shoot it off to ChatGPT.
 
@@ -28,7 +28,7 @@ public sealed class BaselineChatGpt
 			FrequencyPenalty = 0,
 			PresencePenalty = 0,
 		};
-		if (role != null)
+		if (role != "")
 			chatOptions.Messages.Add(new ChatMessage(ChatRole.System, role));
 		chatOptions.Messages.Add(new ChatMessage(ChatRole.User, question));
 

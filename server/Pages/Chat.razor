@@ -15,6 +15,15 @@
 	</div>
 
 	<div class="form-group">
+		<label>Role</label>
+		<InputSelect @bind-Value="selectedRole">
+			<option value="">(Baseline)</option>
+			<option value="@Roles.General">General</option>
+			<option value="@Roles.Bible">Bible</option>
+		</InputSelect>
+	</div>
+
+	<div class="form-group">
 		<label>Augmented Search Index</label>
 		<InputSelect @bind-Value="selectedIndex">
 			<option value="">(Baseline)</option>
@@ -39,6 +48,7 @@
 	private string Prompt { get; set; } = "";
 	private bool SubmitDisabled { get; set; }
 	private string selectedIndex = "";
+	private string selectedRole = "";
 	private IReadOnlyCollection<string> indices = Array.Empty<string>();
 	private ResultsDiv? results;
 
@@ -47,13 +57,13 @@
 		SubmitDisabled = true;
 		if (selectedIndex == "")
 		{
-			var (result, cost) = await Baseline.RunAsync(Roles.General, Prompt);
+			var (result, cost) = await Baseline.RunAsync(selectedRole, Prompt);
 			CostTracker.Add(cost);
 			results?.Update(RetrievalAugmentedGeneration.EmptyReferences, result);
 		}
 		else
 		{
-			var (result, cost, referenceMap) = await RetrievalAugmentedGeneration.RunAsync(selectedIndex, Roles.General, Prompt);
+			var (result, cost, referenceMap) = await RetrievalAugmentedGeneration.RunAsync(selectedIndex, selectedRole, Prompt);
 			CostTracker.Add(cost);
 			results?.Update(referenceMap, result);
 		}
