@@ -26,6 +26,7 @@ public sealed class OpenAiClientProvider
 				Diagnostics =
 				{
 					IsLoggingContentEnabled = true,
+					LoggedContentSizeLimit = int.MaxValue,
 					LoggedHeaderNames = { "openai-model", "openai-processing-ms" },
 				},
 			});
