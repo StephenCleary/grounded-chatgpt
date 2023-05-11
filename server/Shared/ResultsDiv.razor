@@ -1,6 +1,54 @@
-﻿<div class="results form-control">@Content</div>
+﻿@using System.Text.RegularExpressions;
+<div class="results form-control">
+	@foreach (var item in _resultsList)
+	{
+		if (item is NestedHref href)
+		{
+			<sup><a href="@href.Uri" target="_blank">@href.Text</a></sup>
+		}
+		else
+		{
+			<span>@item</span>
+		}
+	}
+</div>
 
 @code {
-    [Parameter]
-    public RenderFragment? Content { get; set; }
+	public void Update(IReadOnlyDictionary<string, (string Uri, string Name)> referenceMap, string result)
+	{
+		// Generate hyperlinks for source references in the response, but in a way that we don't allow ChatGPT to inject HTML.
+		_resultsList.Clear();
+		var matches = ReferenceRegex.Matches(result);
+		var split = ReferenceRegex.Split(result);
+		List<string> referenceUrisInGroup = new();
+		for (int i = 0; i < matches.Count; i++)
+		{
+			_resultsList.Add(split[i]);
+			if (split[i] != "")
+				referenceUrisInGroup.Clear();
+
+			var referenceId = matches[i].Value;
+			if (referenceMap.ContainsKey(referenceId))
+			{
+				var (referenceUri, referenceName) = referenceMap[referenceId];
+				if (!referenceUrisInGroup.Contains(referenceUri))
+				{
+					_resultsList.Add(new NestedHref { Text = $"[{referenceName}]", Uri = referenceUri });
+					referenceUrisInGroup.Add(referenceUri);
+				}
+			}
+		}
+		_resultsList.Add(split[matches.Count]);
+		StateHasChanged();
+	}
+
+	private List<object> _resultsList = new();
+
+	private static readonly Regex ReferenceRegex = new(@"\[[^\]]+\]");
+
+	private sealed class NestedHref
+	{
+		public string Text { get; set; } = null!;
+		public string Uri { get; set; } = null!;
+	}
 }

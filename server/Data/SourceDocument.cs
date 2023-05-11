@@ -11,6 +11,11 @@ public sealed class SourceDocument
     public string Id { get; set; } = null!;
 
     /// <summary>
+    /// A user-friendly name of the source document. These may be shared among multiple documents in the search index.
+    /// </summary>
+    public string Name { get; set; } = null!;
+
+    /// <summary>
     /// The URI used to generate links from source references.
     /// </summary>
     public string Uri { get; set; } = null!;

@@ -17,10 +17,10 @@ public sealed class CompleteRetrieveRead
 		_logger = logger;
 	}
 
-	public async Task<(string Result, decimal Cost, IReadOnlyDictionary<string, string> References)> RunAsync(string searchIndex, string role, string question)
+	public async Task<(string Result, decimal Cost, IReadOnlyDictionary<string, (string Uri, string Name)> References)> RunAsync(string searchIndex, string role, string question)
 	{
 		if (_openAiClientProvider.Client == null)
-			return ("{No API key}", 0, new Dictionary<string, string>());
+			return ("{No API key}", 0, EmptyReferences);
 
         question = question.Replace("\r\n", "\n");
 
@@ -46,10 +46,12 @@ public sealed class CompleteRetrieveRead
 		// Search ElasticSearch using the extracted search keywords.
 		var searchDocuments = await _elasticsearchService.SearchAsync(searchIndex, searchQuery);
 		if (searchDocuments.Count == 0)
-			return ("I don't know.", cost, new Dictionary<string, string>());
+			return ("I don't know.", cost, EmptyReferences);
 
 		// Map simple reference numbers to the source URIs.
-		var referenceMap = searchDocuments.Select((sourceDocument, i) => (sourceDocument, i)).ToDictionary(x => $"[{x.i + 1}]", x => x.sourceDocument.Uri);
+		Dictionary<string, (string Uri, string Name)> referenceMap = searchDocuments
+			.Select((sourceDocument, i) => (sourceDocument, i))
+			.ToDictionary(x => $"[{x.i + 1}]", x => (x.sourceDocument.Uri, x.sourceDocument.Name));
 
 		// Use the Role and the search Results to build a system prompt defining how the AI should respond to the user.
 		var searchDocumentsUsed = searchDocuments.AsEnumerable();
@@ -86,6 +88,8 @@ public sealed class CompleteRetrieveRead
 		return (choice.Message.Content, cost, referenceMap);
 	}
 
+	private static readonly Dictionary<string, (string Uri, string Name)> EmptyReferences = new();
+
 	private const string _queryTemplate =
 	"""
 	Below is a question asked by the user that needs to be answered by searching.
@@ -103,7 +107,7 @@ public sealed class CompleteRetrieveRead
 	{role}
 	Answer the following question. You may include multiple answers, but each answer may only use the data provided in the References below.
 	Each Reference has a number followed by tab and then its data.
-	Use square brakets to indicate which Reference was used, e.g. [0]
+	Use square brakets to indicate which Reference was used, e.g. [7]
 	Don't combine References; list each Reference separately, e.g. [1][2]
 	If you cannot answer using the References below, say you don't know. Only provide answers that include at least one Reference name.
 	If asking a clarifying question to the user would help, ask the question.

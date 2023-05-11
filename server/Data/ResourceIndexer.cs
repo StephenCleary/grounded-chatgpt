@@ -32,6 +32,7 @@ public sealed class ResourceIndexer
                             Id = documentId,
                             Text = text,
                             Uri = $"https://ref.ly/r/kjv/{Uri.EscapeDataString(documentId)}",
+                            Name = documentId,
                         });
                     }
 
@@ -72,6 +73,7 @@ public sealed class ResourceIndexer
                 Id = documentId,
                 Text = text,
                 Uri = uri,
+                Name = documentId,
             }).Chunk(20))
             {
                 await _elasticsearchService.IndexAsync(indexName, batch);
@@ -116,12 +118,14 @@ public sealed class ResourceIndexer
             Id = sourceDocument.Id + "0",
             Text = sourceDocument.Text[..splitIndex].Trim(),
             Uri = sourceDocument.Uri,
+            Name = sourceDocument.Name,
         };
         var second = new SourceDocument
 		{
 			Id = sourceDocument.Id + "1",
 			Text = sourceDocument.Text[splitIndex..].Trim(),
 			Uri = sourceDocument.Uri,
+			Name = sourceDocument.Name,
 		};
 		
         foreach (var firstResult in Split(first))

@@ -1,5 +1,4 @@
 ﻿@page "/augmented"
-@using System.Text.RegularExpressions;
 @inject CompleteRetrieveRead Approach
 @inject GlobalCostTracker CostTracker
 @inject ElasticsearchService ElasticsearchService
@@ -28,30 +27,16 @@
 
 	<div class="form-group">
 		<label>Response</label>
-		<ResultsDiv>
-			<Content>
-				@foreach (var item in Response)
-				{
-					if (item is NestedHref href)
-					{
-						<sup><a href="@href.Uri" target="_blank">@href.Text</a></sup>
-					}
-					else
-					{
-						<span>@item</span>
-					}
-				}
-			</Content>
-		</ResultsDiv>
+		<ResultsDiv @ref="results" />
 	</div>
 </EditForm>
 
 @code {
 	private string Prompt { get; set; } = "";
-	private List<object> Response { get; set; } = new();
 	private bool SubmitDisabled { get; set; }
 	private string selectedIndex = "";
 	private IReadOnlyCollection<string> indices = Array.Empty<string>();
+	private ResultsDiv? results;
 
 	private async Task SubmitAsync()
 	{
@@ -59,32 +44,11 @@
 		var (result, cost, referenceMap) = await Approach.RunAsync(selectedIndex, Roles.General, Prompt);
 		SubmitDisabled = false;
 		CostTracker.Add(cost);
-
-		// Generate hyperlinks for source references in the response, but in a way that we don't allow ChatGPT to inject HTML.
-		Response = new();
-		var matches = ReferenceRegex.Matches(result);
-		var split = ReferenceRegex.Split(result);
-		for (int i = 0; i < matches.Count; i++)
-		{
-			Response.Add(split[i]);
-
-			var referenceId = matches[i].Value;
-			if (referenceMap.ContainsKey(referenceId))
-				Response.Add(new NestedHref { Text = matches[i].Value, Uri = referenceMap[referenceId] });
-		}
-		Response.Add(split[matches.Count]);
+		results?.Update(referenceMap, result);
 	}
 
 	protected override async Task OnInitializedAsync()
 	{
 		indices = await ElasticsearchService.GetIndicesAsync();
-	}
-
-	private static readonly Regex ReferenceRegex = new(@"\[[^\]]+\]");
-
-	private sealed class NestedHref
-	{
-		public string Text { get; set; } = null!;
-		public string Uri { get; set; } = null!;
 	}
 }

@@ -25,7 +25,7 @@ public sealed class ElasticsearchService
 	{
 		var response = await _client.SearchAsync<SourceDocument>(s => s
 			.Index(index)
-			.Query(q => q.SimpleQueryString(q => q.Query(query))));
+			.Query(q => q.SimpleQueryString(q => q.Query(query).Fields("text"))));
 		return response.Documents;
 	}
 
@@ -42,8 +42,7 @@ public sealed class ElasticsearchService
 
 	public async Task DeleteIndexAsync(string index)
 	{
-		var response = await _client.Indices.DeleteAsync(new DeleteIndexRequest(index) { RequestConfiguration = new RequestConfiguration() { ThrowExceptions = false }});
-		
+		await _client.Indices.DeleteAsync(new DeleteIndexRequest(index) { RequestConfiguration = new RequestConfiguration() { ThrowExceptions = false }});
 	}
 
 	public async Task CreateIndexAsync(string index) => await _client.Indices.CreateAsync(index);

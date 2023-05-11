@@ -18,30 +18,20 @@
 
 	<div class="form-group">
 		<label>Response</label>
-		<InputTextArea @bind-Value="Response" class="form-control" readonly="1" rows="13" />
-	</div>
-
-	<div class="form-group">
-		<label>References</label>
-		@foreach (var x in References.Keys.OrderBy(x => x))
-		{
-			<p><a href="@References[x]">@x</a></p>
-		}
+		<ResultsDiv @ref="results" />
 	</div>
 </EditForm>
 
 @code {
 	private string Prompt { get; set; } = "";
-	private string Response { get; set; } = "";
 	private bool SubmitDisabled { get; set; }
-	private IReadOnlyDictionary<string, string> References { get; set; } = new Dictionary<string, string>();
+	private ResultsDiv? results;
 
 	private async Task SubmitAsync()
 	{
 		SubmitDisabled = true;
 		var (result, cost, referenceMap) = await Approach.RunAsync("bible", Roles.Bible, Prompt);
-		Response = result;
-		References = referenceMap;
+		results?.Update(referenceMap, result);
 		SubmitDisabled = false;
 		CostTracker.Add(cost);
 	}
