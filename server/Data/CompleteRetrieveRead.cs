@@ -53,11 +53,11 @@ public sealed class CompleteRetrieveRead
 
 		// Use the Role and the search Results to build a system prompt defining how the AI should respond to the user.
 		var searchDocumentsUsed = searchDocuments.AsEnumerable();
-		var prompt = _promptTemplate.Template(new { role, sources = string.Join("\n", searchDocuments.Select((x, i) => $"{i + 1}\t{x.Text}")) });
+		var prompt = _promptTemplate.Template(new { role, sources = string.Join("\n", searchDocumentsUsed.Select((x, i) => $"{i + 1}\t{x.Text}")) });
 		while (_openAiClientProvider.Options!.Value.ChatModel.TokenCount(prompt) > MaximumSystemPromptTokenLength)
 		{
 			searchDocumentsUsed = searchDocumentsUsed.Take(searchDocumentsUsed.Count() - 1);
-			prompt = _promptTemplate.Template(new { role, sources = string.Join("\n", searchDocuments.Select((x, i) => $"{i + 1}\t{x.Text}")) });
+			prompt = _promptTemplate.Template(new { role, sources = string.Join("\n", searchDocumentsUsed.Select((x, i) => $"{i + 1}\t{x.Text}")) });
 		}
 
 		// Send the system prompt and the user's question to the AI.
