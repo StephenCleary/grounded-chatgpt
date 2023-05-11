@@ -14,6 +14,6 @@ POST /bible/_search
     }
 }
 
-DELETE /queen
+DELETE /web
 
-GET /queen/_count
+GET /web/_count
