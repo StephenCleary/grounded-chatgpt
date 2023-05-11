@@ -42,6 +42,10 @@
 		<label>Response</label>
 		<ResultsDiv @ref="results" />
 	</div>
+
+	<div class="form-group">
+		Cost of last chat: $@lastCost
+	</div>
 </EditForm>
 
 @code {
@@ -51,22 +55,17 @@
 	private string selectedRole = "";
 	private IReadOnlyCollection<string> indices = Array.Empty<string>();
 	private ResultsDiv? results;
+	private decimal lastCost = 0;
 
 	private async Task SubmitAsync()
 	{
 		SubmitDisabled = true;
-		if (selectedIndex == "")
-		{
-			var (result, cost) = await Baseline.RunAsync(selectedRole, Prompt);
-			CostTracker.Add(cost);
-			results?.Update(RetrievalAugmentedGeneration.EmptyReferences, result);
-		}
-		else
-		{
-			var (result, cost, referenceMap) = await RetrievalAugmentedGeneration.RunAsync(selectedIndex, selectedRole, Prompt);
-			CostTracker.Add(cost);
-			results?.Update(referenceMap, result);
-		}
+		var (result, cost, referenceMap) = selectedIndex == "" ?
+			await Baseline.RunAsync("", selectedRole, Prompt) :
+			await RetrievalAugmentedGeneration.RunAsync(selectedIndex, selectedRole, Prompt);
+		CostTracker.Add(cost);
+		lastCost = cost;
+		results?.Update(referenceMap, result);
 		SubmitDisabled = false;
 	}
 

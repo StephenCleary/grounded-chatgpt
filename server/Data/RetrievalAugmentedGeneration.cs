@@ -8,7 +8,7 @@ namespace server.Data;
 /// - Run the search query against the database.
 /// - Using the query results as sources, Complete the original question with an answer.
 /// </summary>
-public sealed class RetrievalAugmentedGeneration
+public sealed class RetrievalAugmentedGeneration : IChatStrategy
 {
 	public RetrievalAugmentedGeneration(ElasticsearchService elasticsearchService, OpenAiClientProvider openAiClientProvider, ILogger<RetrievalAugmentedGeneration> logger)
 	{
@@ -20,7 +20,7 @@ public sealed class RetrievalAugmentedGeneration
 	public async Task<(string Result, decimal Cost, IReadOnlyDictionary<string, (string Uri, string Name)> References)> RunAsync(string searchIndex, string role, string question)
 	{
 		if (_openAiClientProvider.Client == null)
-			return ("{No API key}", 0, EmptyReferences);
+			return ("{No API key}", 0, IChatStrategy.EmptyReferences);
 
         question = question.Replace("\r\n", "\n");
 
@@ -46,7 +46,7 @@ public sealed class RetrievalAugmentedGeneration
 		// Search ElasticSearch using the extracted search keywords.
 		var searchDocuments = await _elasticsearchService.SearchAsync(searchIndex, searchQuery);
 		if (searchDocuments.Count == 0)
-			return ("I don't know.", cost, EmptyReferences);
+			return ("I don't know.", cost, IChatStrategy.EmptyReferences);
 
 		// Map simple reference numbers to the source URIs.
 		Dictionary<string, (string Uri, string Name)> referenceMap = searchDocuments
@@ -87,8 +87,6 @@ public sealed class RetrievalAugmentedGeneration
 
 		return (choice.Message.Content, cost, referenceMap);
 	}
-
-	public static readonly Dictionary<string, (string Uri, string Name)> EmptyReferences = new();
 
 	private const string _queryTemplate =
 	"""

@@ -6,19 +6,19 @@ namespace server.Data;
 /// Approach:
 /// - Just send the user query to ChatGPT, with an optional role.
 /// </summary>
-public sealed class BaselineChatGpt
+public sealed class BaselineChatGpt : IChatStrategy
 {
 	public BaselineChatGpt(OpenAiClientProvider openAiClientProvider)
 	{
 		_openAiClientProvider = openAiClientProvider;
 	}
 
-	public async Task<(string Result, decimal Cost)> RunAsync(string role, string question)
+	public async Task<(string Result, decimal Cost, IReadOnlyDictionary<string, (string Uri, string Name)> References)> RunAsync(string searchIndex, string role, string question)
 	{
 		// Just shoot it off to ChatGPT.
 
 		if (_openAiClientProvider.Client == null)
-			return ("{No API key}", 0);
+			return ("{No API key}", 0, IChatStrategy.EmptyReferences);
 
 		var chatOptions = new ChatCompletionsOptions()
 		{
@@ -38,9 +38,9 @@ public sealed class BaselineChatGpt
 		var cost = _openAiClientProvider.Options.Value.ChatModel.Cost(chatCompletions.Usage.TotalTokens);
 		var choice = chatCompletions.Choices.FirstOrDefault();
 		if (choice == null)
-			return ("I don't know.", cost);
+			return ("I don't know.", cost, IChatStrategy.EmptyReferences);
 
-		return (choice.Message.Content, cost);
+		return (choice.Message.Content, cost, IChatStrategy.EmptyReferences);
 	}
 
 	private readonly OpenAiClientProvider _openAiClientProvider;
