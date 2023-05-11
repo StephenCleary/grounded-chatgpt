@@ -17,7 +17,8 @@ builder.Services.AddSingleton<ElasticsearchService>();
 builder.Services.AddSingleton<ResourceIndexer>();
 builder.Services.AddSingleton<OpenAiClientProvider>();
 builder.Services.AddSingleton<GlobalCostTracker>();
-builder.Services.AddTransient<CompleteRetrieveRead>();
+builder.Services.AddTransient<RetrievalAugmentedGeneration>();
+builder.Services.AddTransient<BaselineChatGpt>();
 
 var app = builder.Build();
 

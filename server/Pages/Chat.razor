@@ -1,11 +1,12 @@
-﻿@page "/augmented"
-@inject CompleteRetrieveRead Approach
+﻿@page "/chat"
+@inject RetrievalAugmentedGeneration RetrievalAugmentedGeneration
+@inject BaselineChatGpt Baseline
 @inject GlobalCostTracker CostTracker
 @inject ElasticsearchService ElasticsearchService
 
-<PageTitle>Augmented</PageTitle>
+<PageTitle>ChatGPT</PageTitle>
 
-<h1>Augmented Retrieval Generation</h1>
+<h1>Augmented Retrieval Generation Playground</h1>
 
 <EditForm Model="@this" OnSubmit="@SubmitAsync">
 	<div class="form-group">
@@ -13,13 +14,16 @@
 		<InputTextArea @bind-Value="Prompt" class="form-control" />
 	</div>
 
-	<InputSelect @bind-Value="selectedIndex">
-		<option value="">Select Index</option>
-		@foreach (var item in indices)
-		{
-			<option value="@item">@item</option>
-		}
-	</InputSelect>
+	<div class="form-group">
+		<label>Augmented Search Index</label>
+		<InputSelect @bind-Value="selectedIndex">
+			<option value="">(Baseline)</option>
+			@foreach (var item in indices)
+			{
+				<option value="@item">@item</option>
+			}
+		</InputSelect>
+	</div>
 
 	<div class="form-group">
 		<button type="submit" class="btn btn-primary" disabled="@SubmitDisabled">Submit</button>
@@ -41,10 +45,19 @@
 	private async Task SubmitAsync()
 	{
 		SubmitDisabled = true;
-		var (result, cost, referenceMap) = await Approach.RunAsync(selectedIndex, Roles.General, Prompt);
+		if (selectedIndex == "")
+		{
+			var (result, cost) = await Baseline.RunAsync(Roles.General, Prompt);
+			CostTracker.Add(cost);
+			results?.Update(RetrievalAugmentedGeneration.EmptyReferences, result);
+		}
+		else
+		{
+			var (result, cost, referenceMap) = await RetrievalAugmentedGeneration.RunAsync(selectedIndex, Roles.General, Prompt);
+			CostTracker.Add(cost);
+			results?.Update(referenceMap, result);
+		}
 		SubmitDisabled = false;
-		CostTracker.Add(cost);
-		results?.Update(referenceMap, result);
 	}
 
 	protected override async Task OnInitializedAsync()
