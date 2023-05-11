@@ -1,6 +1,9 @@
 ﻿@page "/"
 @inject ResourceIndexer ResourceIndexer
 @inject ElasticsearchService ElasticsearchService
+@inject ILogger<Index> Logger
+@inject IWebHostEnvironment WebHostEnvironment
+@inject NavigationManager NavigationManager
 
 <h1>Setup</h1>
 
@@ -64,43 +67,88 @@
 
     private async Task CreateIndexAsync()
     {
-        await ElasticsearchService.CreateIndexAsync(createIndexName);
-        indices = await ElasticsearchService.GetIndicesAsync();
-        createIndexName = "";
-        indexerStatus = $"Created index {createIndexName}";
+        try
+        {
+            await ElasticsearchService.CreateIndexAsync(createIndexName);
+            indices = await ElasticsearchService.GetIndicesAsync();
+            createIndexName = "";
+            indexerStatus = $"Created index {createIndexName}";
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Index creation failed.");
+            indexerStatus = $"Failed: {ex}";
+        }
     }
 
     private async Task IndexBibleAsync()
     {
-        await ElasticsearchService.DeleteIndexAsync("bible");
-        await ElasticsearchService.CreateIndexAsync("bible");
-        await ResourceIndexer.IndexBibleAsync("bible", new Progress<string>(report =>
+        try
         {
-            indexerStatus = report;
-            StateHasChanged();
-        }));
+            await ElasticsearchService.DeleteIndexAsync("bible");
+            await ElasticsearchService.CreateIndexAsync("bible");
+            await ResourceIndexer.IndexBibleAsync("bible", SimpleProgress());
+            indexerStatus = "Done indexing Bible";
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Indexing failed.");
+            indexerStatus = $"Failed: {ex}";
+        }
     }
 
     private async Task IndexUriAsync()
     {
-        await ResourceIndexer.IndexUriAsync(selectedIndex, uri, new Progress<string>(report =>
+        try
         {
-            indexerStatus = report;
-            StateHasChanged();
-        }));
+            await ResourceIndexer.IndexUriAsync(selectedIndex, uri, SimpleProgress());
+            indexerStatus = $"Done indexing {uri}";
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Indexing failed.");
+            indexerStatus = $"Failed: {ex}";
+        }
     }
 
     private async Task IndexFilesAsync(InputFileChangeEventArgs e)
     {
-        foreach (var file in e.GetMultipleFiles(int.MaxValue))
+        try
         {
-            await ResourceIndexer.IndexPdfAsync(selectedIndex, file.Name, file.OpenReadStream(long.MaxValue), new Progress<string>(report =>
+            var uploadFolder = Path.Combine(WebHostEnvironment.WebRootPath, "uploads");
+            Directory.CreateDirectory(uploadFolder);
+            var files = new List<(string Name, string Path, string Uri)>();
+            foreach (var file in e.GetMultipleFiles(int.MaxValue))
             {
-                indexerStatus = report;
-                StateHasChanged();
-            }));
+                indexerStatus = $"Uploading {file.Name}";
+                var path = Path.Combine(uploadFolder, file.Name);
+                using (var input = file.OpenReadStream(long.MaxValue))
+                using (var output = File.Create(path))
+                    await input.CopyToAsync(output);
+                var uriBuilder = new UriBuilder(NavigationManager.Uri);
+                uriBuilder.Path = $"uploads/{file.Name}";
+                files.Add((file.Name, path, uriBuilder.Uri.ToString()));
+            }
+
+            foreach (var file in files)
+            {
+                await ResourceIndexer.IndexPdfAsync(selectedIndex, file.Name, file.Path, file.Uri, SimpleProgress());
+            }
+
+            indexerStatus = "Done indexing PDF files.";
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Indexing failed.");
+            indexerStatus = $"Failed: {ex}";
         }
     }
+
+    private IProgress<string> SimpleProgress() => new Progress<string>(report =>
+    {
+        indexerStatus = report;
+        StateHasChanged();
+    });
 
     protected override async Task OnInitializedAsync()
     {

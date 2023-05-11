@@ -16,102 +16,71 @@ public sealed class ResourceIndexer
 
     public async Task IndexBibleAsync(string indexName, IProgress<string> progress)
     {
-        try
+        foreach (var book in Structure.Books)
         {
-            foreach (var book in Structure.Books)
+            foreach (var chapter in book.Chapters)
             {
-                foreach (var chapter in book.Chapters)
+                var documents = new List<SourceDocument>();
+
+                for (int verse = chapter.BeginVerse; verse != chapter.EndVerse; ++verse)
                 {
-                    var documents = new List<SourceDocument>();
-
-                    for (int verse = chapter.BeginVerse; verse != chapter.EndVerse; ++verse)
+                    var documentId = $"{book.Name} {chapter.Index + 1}:{verse - chapter.BeginVerse + 1}";
+                    var text = PreprocessText(Bible.FormattedVerse(verse).Text);
+                    documents.Add(new SourceDocument
                     {
-                        var documentId = $"{book.Name} {chapter.Index + 1}:{verse - chapter.BeginVerse + 1}";
-                        var text = PreprocessText(Bible.FormattedVerse(verse).Text);
-                        documents.Add(new SourceDocument
-                        {
-                            Id = documentId,
-                            Text = text,
-                            Uri = $"https://ref.ly/r/kjv/{Uri.EscapeDataString(documentId)}",
-                            Name = documentId,
-                        });
-                    }
-
-                    await _elasticsearchService.IndexAsync(indexName, documents);
-                    progress?.Report($"Completed {book.Name} {chapter.Index + 1}");
+                        Id = documentId,
+                        Text = text,
+                        Uri = $"https://ref.ly/r/kjv/{Uri.EscapeDataString(documentId)}",
+                        Name = documentId,
+                    });
                 }
-            }
 
-            progress?.Report("Done!");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Indexing failed.");
-            progress?.Report($"Failed: {ex}");
+                await _elasticsearchService.IndexAsync(indexName, documents);
+                progress?.Report($"Completed {book.Name} {chapter.Index + 1}");
+            }
         }
     }
 
     public async Task IndexUriAsync(string indexName, string uri, IProgress<string> progress)
     {
-        try
+        progress?.Report($"Downloading {uri}");
+        var html = await Globals.HttpClient.GetStringAsync(uri);
+
+        progress?.Report($"Processing {uri}");
+        var doc = new HtmlDocument();
+        doc.LoadHtml(html);
+        var text = string.Join(" ", doc.DocumentNode.SelectSingleNode("//body")
+            .Descendants()
+            .Where(n => !n.HasChildNodes && !string.IsNullOrWhiteSpace(n.InnerText))
+            .Select(n => HtmlEntity.DeEntitize(n.InnerText)));
+        text = PreprocessText(text);
+
+        progress?.Report($"Indexing {uri}");
+        var documentId = doc.DocumentNode.SelectSingleNode("//title")?.InnerText ?? uri;
+        await IndexChunks(indexName, new SourceDocument
         {
-            progress?.Report($"Downloading {uri}");
-            var html = await Globals.HttpClient.GetStringAsync(uri);
-
-            progress?.Report($"Processing {uri}");
-            var doc = new HtmlDocument();
-            doc.LoadHtml(html);
-            var text = string.Join(" ", doc.DocumentNode.SelectSingleNode("//body")
-                .Descendants()
-                .Where(n => !n.HasChildNodes && !string.IsNullOrWhiteSpace(n.InnerText))
-                .Select(n => HtmlEntity.DeEntitize(n.InnerText)));
-            text = PreprocessText(text);
-
-			progress?.Report($"Indexing {uri}");
-			var documentId = doc.DocumentNode.SelectSingleNode("//title")?.InnerText ?? uri;
-            await IndexChunks(indexName, new SourceDocument
-            {
-                Id = documentId,
-                Text = text,
-                Uri = uri,
-                Name = documentId,
-            });
-
-            progress?.Report("Done!");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Indexing failed.");
-            progress?.Report($"Failed: {ex}");
-        }
+            Id = documentId,
+            Text = text,
+            Uri = uri,
+            Name = documentId,
+        });
     }
 
-    public async Task IndexPdfAsync(string indexName, string pdfFileName, Stream pdf, IProgress<string> progress)
+    public async Task IndexPdfAsync(string indexName, string name, string path, string uri, IProgress<string> progress)
     {
-        try
-        {
-            progress?.Report($"Extracting text from {pdfFileName}");
-            using var doc = PdfDocument.Open(pdf);
-            var text = string.Join(" ", doc.GetPages().SelectMany(x => x.GetWords()));
-            text = PreprocessText(text);
+        progress?.Report($"Extracting text from {name}");
+        using var doc = PdfDocument.Open(path);
+        var text = string.Join(" ", doc.GetPages().SelectMany(x => x.GetWords()));
+        text = PreprocessText(text);
 
-            progress?.Report($"Indexing {pdfFileName}");
-            var documentId = pdfFileName;
-            await IndexChunks(indexName, new SourceDocument
-            {
-                Id = documentId,
-                Text = text,
-                Uri = pdfFileName,
-                Name = documentId,
-            });
-
-            progress?.Report("Done!");
-        }
-        catch (Exception ex)
+        progress?.Report($"Indexing {name}");
+        await IndexChunks(indexName, new SourceDocument
         {
-            _logger.LogError(ex, "Indexing failed.");
-            progress?.Report($"Failed: {ex}");
-        }
+            Id = name,
+            Text = text,
+            Uri = uri,
+            Name = name,
+        });
     }
 
     /// <summary>
