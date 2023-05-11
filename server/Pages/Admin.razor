@@ -16,7 +16,7 @@
 		<label>OpenAI API Key</label>
 		<InputText @bind-Value="Options.Apikey" type="password" class="form-control" />
 	</div>
-	<div class="form-group">
+@*	<div class="form-group">
 		<label>Deployment for Chat</label>
 		<InputText @bind-Value="Options.ChatDeployment" class="form-control" />
 	</div>
@@ -24,7 +24,7 @@
 		<label>Deployment for Completion</label>
 		<InputText @bind-Value="Options.ExtractDeployment" class="form-control" />
 	</div>
-
+*@
 	<button type="submit" class="btn btn-primary">Save</button>
 </EditForm>
 
@@ -34,7 +34,7 @@
 	private OpenAIOptions Options { get; set; } = null!;
 	private string Message { get; set; } = "";
 
-	protected override async Task OnInitializedAsync()
+	protected override void OnInitialized()
 	{
 		Options = OpenAiClientProvider.Options?.Value ?? new OpenAIOptions
 		{
