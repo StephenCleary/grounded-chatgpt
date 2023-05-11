@@ -71,6 +71,7 @@ public sealed class RetrievalAugmentedGeneration : IChatStrategy
 				{
 					new(ChatRole.System, prompt),
 					new(ChatRole.User, question),
+					new(ChatRole.System, "Include references."),
 				},
 				ChoicesPerPrompt = 1,
 				Temperature = (float)0.7,
