@@ -153,7 +153,7 @@ public sealed class ResourceIndexer
     private readonly ElasticsearchService _elasticsearchService;
 	private readonly ILogger<ResourceIndexer> _logger;
 
-    private const int MaxSourceTokenLength = 1024; // TODO: also reduce search results.
+    private const int MaxSourceTokenLength = 256;
     private static readonly char[] SentenceEndings = new[] { '.', '!', '?' };
     private static readonly char[] WordBreaks = new[] { ',', ';', ':', ' ', '(', ')', '[', ']', '{', '}', '\t', '\n' };
 }
