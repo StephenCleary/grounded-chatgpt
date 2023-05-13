@@ -3,7 +3,7 @@ ChatGPT, but grounded in custom data
 
 [![Open in Dev Containers](https://img.shields.io/static/v1?label=Dev%20Containers&message=Open&color=blue&logo=visualstudiocode)](https://vscode.dev/redirect?url=vscode://ms-vscode-remote.remote-containers/cloneInVolume?url=https://github.com/StephenCleary/grounded-chatgpt)
 
-This is an example of how to "ground" or "focus" ChatGPT on your own data. It's heavily based on the [official Azure Search OpenAI Demo](https://github.com/Azure-Samples/azure-search-openai-demo), although this example uses a local resources for everything except the actual Azure OpenAI calls. And it's written in C# instead of Python.
+This is an example of how to "ground" or "focus" ChatGPT on your own data. It's heavily based on the [official Azure Search OpenAI Demo](https://github.com/Azure-Samples/azure-search-openai-demo), although this example uses local resources for everything except the actual Azure OpenAI calls. And it's written in C# instead of Python.
 
 ## Retrieval Augmented Generation (RAG)
 
@@ -30,6 +30,6 @@ All logs - including the full details of all API calls - are preserved in a loca
 
 There are several limitations in this example code that should be addressed before moving anything like this into production:
 1. The documents in the search index need to be small enough to fit several of them into the ChatGPT prompt. The current code uses a very simplistic system for chopping them up: translating the entire resource to a single text string and then attempting to divide it on sentence/word boundaries until they are small enough. It would be better to have more semantic divisions, i.e., split by subsections first, then by paragraphs, and only then by sentences/words.
-1. Similarly, the indexing in this sample code just uses plain 'ol text. Specifically, there is no support for table data. A better solution would be to use some kind of system that extracts structured data from structured documents (e.g., Azure Form Recognizer).
-1. This is a very simple search system; it uses a basic lexical search. A better system would be a semantic search (i.e., Azure Semantic Search) or maybe a vector/embeddings search.
+1. Similarly, the indexing in this sample code just uses plain 'ol text. Specifically, there is no support for table data, and the HTML parsing is very simplistic. A better solution would be to use some kind of system that extracts structured data from structured documents (e.g., [Azure Form Recognizer](https://azure.microsoft.com/en-us/products/form-recognizer/)).
+1. This is a very simple search system; it uses a basic lexical search. A better system would be a semantic search (i.e., [Azure Semantic Search](https://learn.microsoft.com/en-us/azure/search/semantic-search-overview)) or maybe a vector/embeddings search (although that has additional costs anytime you need to (re-)generate the embeddings).
 1. This code is a proof of concept and does not implement any of the [responsible AI guidelines](https://azure.microsoft.com/en-us/solutions/ai/responsible-ai-with-azure/#overview) such as automated monitoring and a review process.
