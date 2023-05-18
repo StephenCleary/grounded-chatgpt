@@ -112,7 +112,7 @@ public sealed class RetrievalAugmentedGeneration : IChatStrategy
 	If asking a clarifying question to the user would help, ask the question.
 	Do not comment on unused References.
 
-	###	References:
+	### References:
 	{sources}
 
 	""";
